@@ -9,10 +9,8 @@ library(RColorBrewer)
 library(wesanderson)
 library(shinythemes)
 #### DATA ####
-load(file="//192.168.1.5/Documents utilisateurs/Documents de Elie/CD_ISERE_RSA/trajs.Rdata")
+load(file="data/trajs.Rdata")
 cpal(seqdata = trajs)<-rev(wesanderson::wes_palette(name = "Darjeeling1", n = length(alphabet(trajs)), type = "discrete"))
-read.csv(file = "//192.168.1.5/Documents utilisateurs/Documents de Elie/CD_ISERE_RSA/Gdf.csv", header=TRUE, stringsAsFactors = TRUE)->datas
-datas[datas=="Pas de RSA perçu"]<-NA
 #### UI ####
 
 ui <- fluidPage(theme = shinytheme("flatly"),
