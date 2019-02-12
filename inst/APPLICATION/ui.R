@@ -9,7 +9,7 @@ library(RColorBrewer)
 library(wesanderson)
 library(shinythemes)
 #### DATA ####
-load(file="data/trajs.Rdata")
+data("trajs")
 cpal(seqdata = trajs)<-rev(wesanderson::wes_palette(name = "Darjeeling1", n = length(alphabet(trajs)), type = "discrete"))
 #### UI ####
 
