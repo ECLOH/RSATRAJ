@@ -1,4 +1,17 @@
 server <- function(input, output, session) {
+  NB_TRAJS<-shiny::reactive({
+    nrow(trajs)
+  })
+  #
+  NB_UNIQUE_TRAJS<-shiny::reactive({
+    length(attributes(treb)$row.name)
+    })
+    renderUI(expr = tags$sub(
+      paste("Pour information, il y a",NB_TRAJS(), "trajectoires, et",   NB_UNIQUE_TRAJS(), "trajectoires uniques dans le jeu de données", sep=" "))
+      )->output$TEXT_NB_UNIQUE_TRAJS
+    #
+    
+  
   DATE_RANGE<-eventReactive(input$ValidParametres, {
     input$date.range
   })
@@ -62,8 +75,17 @@ server <- function(input, output, session) {
   },  
   height = 500, width = 1000)
   #### -> SEQDIST ####
-  #seqdist(seqdata = trajs, method = input$classtype)
-  ####← PLOT G  ####
+  observe({
+    x <- input$type_distance
+    names(RSATRAJ::methods.args[[x]])->listed_names_methods
+    # Can also set the label and select items
+    updateSelectInput(session, "classtype",
+                      label ="Quel méthode voulez-vous choisir pour calculer la matrice de distance entre les trajectoires? ",
+                      choices = listed_names_methods
+    )
+  })
+  
+    ####← PLOT G  ####
   ppG<-eventReactive(input$plottype, {
     plotG<-seqplot(seqdata = trajs, type = "I", group = sample(x = c("H", "F"), size = 27000, prob = c(0.4, 0.6), replace = TRUE))
     plotG
