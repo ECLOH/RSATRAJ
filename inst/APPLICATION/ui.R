@@ -8,13 +8,9 @@ library(DT)
 library(RColorBrewer)
 library(wesanderson)
 library(shinythemes)
-#### DATA ####
-data("trajs")
-cpal(seqdata = trajs)<-rev(wesanderson::wes_palette(name = "Darjeeling1", n = length(alphabet(trajs)), type = "discrete"))
-seqtab(RSATRAJ::trajs[ , ], idxs = 0)->treb
 #### UI ####
 
-ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,#fluidPage(theme = shinytheme("flatly"),
+ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,theme=shinytheme("flatly"),#fluidPage(theme = shinytheme("flatly"),
                 tabPanel("Paramètres de la session",
                   #tabsetPanel(id = "tabpan",
                   #            tabPanel(title = "Paramètres de la session: ", 
@@ -48,14 +44,40 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,#
                          tabsetPanel(
                               #tabsetPanel(
                               tabPanel(title="Matrice de distance",
-                                       shiny::selectInput(inputId = "selection_rows", label = "Sur quelles données voulez-vous travailler?", c("Un echantillon"="Sample", "Des trajectoires uniques avec leurs poids"="unique.traj", "Toutes les trajectoires"="all"), multiple = FALSE),
+                                       fluidRow(
+                                         column(3,
+                                                h4("Paramètres généraux de la classification"),
+                                       shiny::selectInput(inputId = "selection_rows", label = "Sur quelles données voulez-vous travailler?", c("Un echantillon"="Sample", "Des trajectoires uniques avec leurs poids"="unique.traj", "Toutes les trajectoires"="all"), selected = "Sample", multiple = FALSE),
                                        shiny::uiOutput("TEXT_NB_UNIQUE_TRAJS"),
+                                       shiny::uiOutput("TEXT_NB_SELECTED_TRAJS"),
+                                       
                                        hr(),
                                        shiny::selectInput(inputId = "type_distance", label = "Type de distance : ", c("Edition de trajectoires"="edit", "Attributs communs"="common_attributes", "Distribution d'états"="distrib"), multiple = FALSE),
+                                       hr()),
+                                       column(4,
+                                              h4("Paramètres des coûts (si méthode d'édition sélectionnée)"),
+                                       selectInput(inputId = "method_edit_cost", label = "method [seqcost(method = )]", choices = c("CONSTANT" , "TRATE", "FUTURE" , "FEATURES" , "INDELS", "INDELSLOG"), selected = "TRATE", multiple = FALSE),
+                                       uiOutput("SEQCOST_INPUTS"),
+                                       shiny::actionButton(inputId = "calculCouts", label = "Calcul des couts")
+                                       ),
+                                       column(4,
+                                              h4("Paramètres de la matrice de distance"),
                                        shiny::selectInput(inputId = "classtype", label = "Quel méthode voulez-vous choisir pour calculer la matrice de distance entre les trajectoires? ", choices = c("OM", "LCS", "HAM"), selected = "OM", multiple = FALSE),
-                                       shiny::conditionalPanel(condition = "input.classtype=='OM'", 
-                                                               shiny::sliderInput(label = "Coûts de substitution: rapport aux coûts indel", inputId = "subst_ratio", min = 0.1, max = 5, step = 0.1, value = 1, width = "80%")
+                                       uiOutput("SEQDIST_INPUTS"),
+                                       shiny::actionButton(inputId = "calculDist", label = "Calcul de la matrice de distance")
                                        )
+                                       ), 
+                                       fluidRow(
+                                         h3("Affichage des coûts calculés:"),
+                                         hr(),
+                                         h4("Coûts 'indel' :" ),
+                                         uiOutput("PRINTINDEL"),
+                                         h4("Coûts de substitution :" ),
+                                         uiOutput("PRINTSUBST")
+                                       )
+                                       # shiny::conditionalPanel(condition = "input.classtype=='OM'", 
+                                       #                         shiny::sliderInput(label = "Coûts de substitution: rapport aux coûts indel", inputId = "subst_ratio", min = 0.1, max = 5, step = 0.1, value = 1, width = "80%")
+                                       # )
                                        
                               ),
                               tabPanel(title="Classification"),

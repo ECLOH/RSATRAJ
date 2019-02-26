@@ -1,3 +1,8 @@
+#### DATA ####
+data("trajs")
+cpal(seqdata = trajs)<-rev(wesanderson::wes_palette(name = "Darjeeling1", n = length(alphabet(trajs)), type = "discrete"))
+seqtab(RSATRAJ::trajs[ , ], idxs = 0)->treb
+#### SERVER ####
 server <- function(input, output, session) {
   NB_TRAJS<-shiny::reactive({
     nrow(trajs)
@@ -9,6 +14,13 @@ server <- function(input, output, session) {
     renderUI(expr = tags$sub(
       paste("Pour information, il y a",NB_TRAJS(), "trajectoires, et",   NB_UNIQUE_TRAJS(), "trajectoires uniques dans le jeu de données", sep=" "))
       )->output$TEXT_NB_UNIQUE_TRAJS
+    #
+    NB_SELECT_TRAJS<-shiny::reactive({
+      nrow(trajs.forclass())
+    })
+    renderUI(expr = conditionalPanel(condition = "input.selection_rows == 'Sample'",  
+                                     tags$sub(
+      paste("Vous avez sélectionné un échantillon de ",NB_SELECT_TRAJS(), "trajectoires", sep=" "))))->output$TEXT_NB_SELECTED_TRAJS
     #
     
   
@@ -77,14 +89,67 @@ server <- function(input, output, session) {
   #### -> SEQDIST ####
   observe({
     x <- input$type_distance
-    names(RSATRAJ::methods.args[[x]])->listed_names_methods
+    names(RSATRAJ::seqdist.args[[x]])->listed_names_methods
     # Can also set the label and select items
     updateSelectInput(session, "classtype",
                       label ="Quel méthode voulez-vous choisir pour calculer la matrice de distance entre les trajectoires? ",
                       choices = listed_names_methods
     )
   })
+  #
+  shiny::renderUI({
+    cost.args[[input$method_edit_cost]]->arg2
+    edit.cost.inputs[names(edit.cost.inputs)%in%arg2]
+  })->output$SEQCOST_INPUTS
+  #
+  shiny::renderUI({
+    seqdist.args[[input$type_distance]][[input$classtype]]->arg2
+    seqdist.inputs[names(seqdist.inputs)%in%arg2]
+  })->output$SEQDIST_INPUTS
+  #
+  trajs.forclass<-reactive({
+    if(input$selection_rows=="Sample"){
+      sample(x = 1:nrow(trajs), size = 0.2*nrow(trajs), replace = FALSE)->vec.sample
+      trajs[vec.sample , ]
+    } else {
+      trajs
+    }
+  })
+  SEQCOST<-eventReactive(eventExpr = input$calculCouts, {
+    seqcost(seqdata=trajs.forclass(), 
+            method = input$method_edit_cost, 
+            cval = input$subst_ratio, 
+            time.varying=input$time_varying_substitution_costs,
+            transition=input$transition_substitution_costs,
+            lag=input$lag_subst_cost)
+  })
   
+  output$PRINTINDEL<-renderUI({
+    SEQCOST()$indel->the.indels
+    if(length(the.indels)>1){
+      the.indels<-data.frame("Etats"=alphabet(trajs.forclass()), "Cout(s)_INDEL"=round(the.indels, 2))
+      DT::renderDataTable(the.indels)->output$bb
+      dataTableOutput("bb")
+    } else {
+      renderText(as.character(the.indels))->output$bb
+      textOutput("bb")
+    }
+  })
+  
+  output$PRINTSUBST<-renderUI({
+    SEQCOST()$sm->the.sm
+    if(class(the.sm)=="matrix"){
+      DT::renderDataTable(the.sm)->output$aa
+      dataTableOutput("aa")
+    } else {
+      renderPrint(the.sm)->output$aa
+      shiny::verbatimTextOutput ("aa")
+    }
+  })
+  
+  SEQDIST<-eventReactive(eventExpr = input$calculDist, {
+    seqdist(seqdata = trajs.forclass(), method = input$classtype, refseq = input$refseq_seqdist, norm = input$norm_seqdist, indel = SEQCOST()$indel, sm = SEQCOST()$sm, expcost = input$expcost_seqdist, context=input$context_seqdist)
+  })
     ####← PLOT G  ####
   ppG<-eventReactive(input$plottype, {
     plotG<-seqplot(seqdata = trajs, type = "I", group = sample(x = c("H", "F"), size = 27000, prob = c(0.4, 0.6), replace = TRUE))
