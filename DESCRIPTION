@@ -2,7 +2,7 @@ Package: RSATRAJ
 Type: Package
 Title: What the Package Does (Title Case)
 Version: 0.1.0
-Depends: shiny,  shinythemes, shinycssloaders, ggplot2, TraMineR, TraMineRextras, RColorBrewer, DT, RColorBrewer, wesanderson, xml2
+Depends: shiny,  shinythemes, shinycssloaders, shinyhelper, ggplot2, TraMineR, TraMineRextras, RColorBrewer, DT, RColorBrewer, wesanderson, xml2
 Author: Who wrote it
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)
