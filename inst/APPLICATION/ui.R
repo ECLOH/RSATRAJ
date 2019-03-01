@@ -9,6 +9,8 @@ library(RColorBrewer)
 library(wesanderson)
 library(shinythemes)
 library(shinycssloaders)
+library(cluster)
+library(fastcluster)
 #### UI ####
 
 ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,theme=shinytheme("flatly"),#fluidPage(theme = shinytheme("flatly"),
@@ -51,6 +53,11 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       shiny::selectInput(inputId = "selection_rows", label = "Sur quelles données voulez-vous travailler?", c("Un echantillon"="Sample", "Des trajectoires uniques avec leurs poids"="unique.traj", "Toutes les trajectoires"="all"), selected = "Sample", multiple = FALSE),
                                                       shiny::uiOutput("TEXT_NB_UNIQUE_TRAJS"),
                                                       hr(), 
+                                                      conditionalPanel(condition="input.selection_rows=='Sample'",
+                                                                       shiny::numericInput(inputId = "sample_prop", label = "Taille de l'échantillon", value = 0.1, min = 0.05, max = 0.95, step = 0.05),
+                                                                       shiny::selectInput(inputId = "sample_var", 
+                                                                                          label = "Variables utilisées pour la représentativité", 
+                                                                                          choices = c("Territoire de l'Isère", "Sexe"), multiple = TRUE, selected = NULL)),       
                                                       shiny::uiOutput("TEXT_NB_SELECTED_TRAJS") %>% withSpinner(color="#0dc5c1")
                                                ),
                                                column(4,
@@ -69,7 +76,13 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       h4("Paramètres de la matrice de distance :"),
                                                       shiny::selectInput(inputId = "classtype", label = "Quel méthode voulez-vous choisir pour calculer la matrice de distance entre les trajectoires? ", choices = c("OM", "LCS", "HAM"), selected = "OM", multiple = FALSE),
                                                       uiOutput("SEQDIST_INPUTS") %>% withSpinner(color="#0dc5c1"),
-                                                      shiny::actionButton(inputId = "calculDist", label = "Calcul de la matrice de distance")
+                                                      hr(),
+                                                      uiOutput("PRINTTIMEDIST") %>% withSpinner(color="#0dc5c1"),
+                                                      hr(),
+                                                      shiny::actionButton(inputId = "calculDist", label = "Calcul de la matrice de distance"),
+                                                      conditionalPanel(condition = "input.calculDist", 
+                                                      uiOutput("PRINTSEQDIST") %>% withSpinner(color="#0dc5c1")
+                                                      )
                                                )
                                              ), 
                                              conditionalPanel(condition = "input.type_distance=='edit'", 
@@ -88,7 +101,19 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              # )
                                              
                                     ),
-                                    tabPanel(title="Classification"),
+                                    tabPanel(title="Classification", 
+                                             fluidRow(
+                                               column(4,
+                                             shiny::selectInput(inputId = "cluster_type", label = "Quel méthode voulez-vous utilsier pour regrouper les séquences à partir de la matrice de dissemblance?", choices = c("Hierarchical Clustering"="CAH", "FAST Hierarchical Clustering"="fastCAH", "Partitionning Around Medoid"="PAM"), selected = "CAH", multiple = FALSE)),
+                                             column(4,
+                                             conditionalPanel(condition = "input.cluster_type=='CAH'", 
+                                                              shiny::selectInput(inputId = "agnes_method", choices = c("average", "single", "complete", "ward", "weighted", "flexible", "gaverage"), label = "Choix de la méthode (CAH) :", selected = "ward", multiple = FALSE)), 
+                                             conditionalPanel(condition = "input.cluster_type=='fastCAH'", 
+                                                              shiny::selectInput(inputId = "fastclust_method", choices = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median" ,"centroid"), label = "Choix de la méthode (FAST CAH) :", selected = "ward.D2", multiple = FALSE))),
+                                             column(2,
+                                             shiny::actionButton(inputId = "calculCLUST", label = "Calcul de la classification"))
+                                    ), 
+                                    uiOutput("DENDOGRAM")),
                                     tabPanel(title="Visualisation des groupes", 
                                              plotOutput("PLOTG")),
                                     tabPanel(title="Statistiques descriptives")

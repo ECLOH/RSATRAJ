@@ -1,3 +1,4 @@
+library(shiny)
 #### ARGS by methods ####
   ##### seqcost ######
   cost.args<-list(

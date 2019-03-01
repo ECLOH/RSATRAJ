@@ -15,7 +15,8 @@ seqdef_modgap<-function (data, var = NULL, informat = "STS", stsep = NULL, alpha
           cnames = NULL, xtstep = 1, tick.last = FALSE, cpal = NULL, 
           missing.color = "darkgrey", labels = NULL, minimal.gap=3, regle.pour.faux.gap="before", ...) 
 {
-  #library(TraMineR)
+  library(TraMineR)
+  library(RColorBrewer)
   maxstatedisplay <- 12
   if (!is.character(void) || void %in% c(left, gaps, right)) 
     msg.stop("'void' must be a character different from left, gaps, and right!")

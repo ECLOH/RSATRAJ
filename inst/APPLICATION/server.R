@@ -119,10 +119,10 @@ server <- function(input, output, session) {
     seqdist.inputs[names(seqdist.inputs)%in%arg2]
   })->output$SEQDIST_INPUTS
   #### trajs.forclass  ####
-  trajs.forclass<-shiny::eventReactive(eventExpr = input$selection_rows, {
+  trajs.forclass<-reactive({#shiny::eventReactive(eventExpr = input$selection_rows, {
     if(input$selection_rows=="Sample"){
       #### sample ####
-      sample(x = 1:nrow(trajs), size = 0.2*nrow(trajs), replace = FALSE)->vec.sample
+      sample(x = 1:nrow(trajs), size = input$sample_prop*nrow(trajs), replace = FALSE)->vec.sample
       trajs[vec.sample , ]
     } else {
       if(input$selection_rows=="unique.traj"){
@@ -172,9 +172,38 @@ server <- function(input, output, session) {
   })
   
   #### SEQDIST  ####
-  SEQDIST<-eventReactive(eventExpr = input$calculDist, {
-    seqdist(seqdata = trajs.forclass(), method = input$classtype, refseq = input$refseq_seqdist, norm = input$norm_seqdist, indel = SEQCOST()$indel, sm = SEQCOST()$sm, expcost = input$expcost_seqdist, context=input$context_seqdist, weighted = TRUE)
+  output$PRINTTIMEDIST<-renderUI({
+    predict.time.dist(nb.sequences = NB_SELECT_TRAJS())->pred.data
+    paste("Pour", NB_SELECT_TRAJS(), "trajectoires, le temps de calcul estimé pour la fonction seqdist() est de", pred.data$nb.secondes, "secondes, soit", pred.data$nb.minutes, "minutes")->thetext
+      renderText(thetext)->output$thetext
+      textOutput("thetext")
   })
+  SEQDIST<-eventReactive(eventExpr = input$calculDist, {
+    if(input$refseq_seqdist==FALSE){REFSEQ<-NULL} else {REFSEQ<-input$refseq_seqdist==FALSE}
+    seqdist(seqdata = trajs.forclass(), method = input$classtype, refseq = REFSEQ, norm = input$norm_seqdist, indel = SEQCOST()$indel, sm = SEQCOST()$sm, expcost = input$expcost_seqdist, context=input$context_seqdist, weighted = TRUE)
+  })
+  
+  output$PRINTSEQDIST<-renderUI({
+renderText(paste("Création d'un objet 'dist' comportant", length(SEQDIST()), "élements. \n La distance minimale est de", min(SEQDIST()), "la distance maximale de", max(SEQDIST()), "et la distance moyenne de", round(sum(SEQDIST())/length(SEQDIST()), 2), sep = " "))->output$cc
+    textOutput("cc") %>% withSpinner(color="#0dc5c1")
+  })
+  #### CLASSIFICATION ####
+  SEQCLASS<-eventReactive(eventExpr = input$calculCLUST, {
+    if(input$cluster_type=="CAH"){
+      agnes(x = SEQDIST(), method = input$agnes_method)
+    } else {
+      if(input$cluster_type=="fastCAH"){
+        fastcluster::hclust(d = SEQDIST() , method = input$fastclust_method, members = NULL)
+        
+      }
+    }
+  })
+  output$DENDOGRAM<-renderUI({
+    renderPlot(plot(SEQCLASS(), which.plots = 2))->output$dd
+    plotOutput("dd") %>% withSpinner(color="#0dc5c1")
+  })
+    
+  
   ####← PLOT G  ####
   ppG<-eventReactive(input$plottype, {
     plotG<-seqplot(seqdata = trajs, type = "I", group = sample(x = c("H", "F"), size = 27000, prob = c(0.4, 0.6), replace = TRUE))
