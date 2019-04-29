@@ -16,6 +16,8 @@ library(ggalluvial)
 library(tidyr)
 library(dplyr)
 library(shinyWidgets)
+library(formattable)
+library(WeightedCluster)
 
 #### UI ####
 
@@ -42,9 +44,9 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                      choices = c("Flux d'entrants", "Flux en continu"), 
                                                      selected = c("Flux en continu"), multiple = FALSE),
                                   shiny::numericInput(inputId = "criterNb", label = "Critère de sortie : nombre de mois consécutifs",value = 3, min = 1, max = 36, step = 1),
-                                  shiny::actionButton(inputId = "ValidParametres", label = "Je valide ces paramètres"),
-                                  #test d'un slider pour la classification
-                                  noUiSliderInput(inputId = "sliderTest",label="slider",min=1,max=10,value = c(4,6),limit=2,step=1,margin=2,behaviour = "drag")
+                                  shiny::actionButton(inputId = "ValidParametres", label = "Je valide ces paramètres")
+                                  
+                                  
                                   #,textOutput("DATE_RANGE_1")
                          )
                          ,
@@ -132,19 +134,27 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                     ,tabPanel(title="Classification",
                                              fluidRow(
                                                column(4,
+                                                      br(),
                                              shiny::selectInput(inputId = "cluster_type", label = "Quel méthode voulez-vous utilsier pour regrouper les séquences ? partir de la matrice de dissemblance?", choices = c("Hierarchical Clustering"="CAH", "FAST Hierarchical Clustering"="fastCAH", "Partitionning Around Medoid"="PAM","Combinaison de la CAH et de PAM"="CAHPAM"), selected = "CAH", multiple = FALSE)),
-                                             column(4,
+                                             column(4,br(),
                                              conditionalPanel(condition = "input.cluster_type=='CAH' | input.cluster_type=='CAHPAM'",
                                                               shiny::selectInput(inputId = "agnes_method", choices = c("average", "single", "complete", "ward", "weighted", "flexible", "gaverage"), label = "Choix de la méthode (CAH) :", selected = "ward", multiple = FALSE)),
                                              conditionalPanel(condition = "input.cluster_type=='fastCAH'",
-                                                              shiny::selectInput(inputId = "fastclust_method", choices = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median" ,"centroid"), label = "Choix de la méthode (FAST CAH) :", selected = "ward.D2", multiple = FALSE))),
+                                                              shiny::selectInput(inputId = "fastclust_method", choices = c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median" ,"centroid"), label = "Choix de la méthode (FAST CAH) :", selected = "ward.D2", multiple = FALSE)),
+                                             conditionalPanel(condition = "input.cluster_type=='CAHPAM'",
+                                                              noUiSliderInput(inputId = "SliderGrp",label="Nombre de groupes",min=2,max=10,value = c(4,6),limit=2,step=1,margin=2,behaviour = "drag"))),
+                                             
+                                             
                                              column(2,
-                                             shiny::actionButton(inputId = "calculCLUST", label = "Calcul de la classification"))
-                                    ),
-                                    uiOutput("DENDOGRAM"),
-                                    splitLayout(
-                                      
+                                                    br(),br(),
+                                             shiny::actionButton(inputId = "calculCLUST", label = "Calcul de la classification")
                                     )),
+                                    uiOutput("classif"),
+                                    uiOutput("tabind"),
+                                    uiOutput("classif_grp")
+                                    
+                                    
+                                    ),
                                     tabPanel(title="Visualisation des groupes",
                                              plotOutput("PLOTG")),
                                     tabPanel(title="Statistiques descriptives"),
@@ -154,8 +164,8 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                             
                                                                        shiny::selectInput(inputId = "timeseq", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
 
-                                                                       conditionalPanel(condition="input.tabselected==2 | input.tabselected==3",
-                                                                                        selectInput(inputId="var_grp",label="Variable Groupe",choices=c("","acpam4","acpam5","acpam6"),selected ="" ,multiple = FALSE)),
+                                                                       # conditionalPanel(condition="input.tabselected==2 | input.tabselected==3",
+                                                                       #                  selectInput(inputId="var_grp",label="Variable Groupe",choices=c("","acpam4","acpam5","acpam6"),selected ="" ,multiple = FALSE)),
                                                                        conditionalPanel(condition="input.tabselected==2",
                                                                                         selectInput(inputId="id_grp",label="Groupe",choices="",selected = "",multiple = FALSE)),
                                                                        shiny::selectInput(inputId = "souspop", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
@@ -171,21 +181,25 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                                      ),
                                              mainPanel( tabsetPanel(navbarMenu(title="Flux",
                                                                                tabPanel(title="Global",value=1,fluidPage(
-                                                                                 plotOutput(outputId="flux_global") %>% withSpinner(color="#0dc5c1"),
-                                                                                 shiny::dataTableOutput("contenuflux")
+                                                                                 shiny::uiOutput(outputId= "h2_fluxGlobal"),
+                                                                                 plotOutput(outputId="flux_global") %>% withSpinner(color="#0dc5c1")
+                                                                                 
                                                                                 
                                                                                )),
-                                                                               tabPanel(title="1 Groupe",value = 2,fluidPage(
-                                                                                 plotOutput(outputId="flux_1grp") %>% withSpinner(color="#0dc5c1")
-                                                                               )),
-                                                                               tabPanel(title="Ensemble",value = 3,fluidPage(
-                                                                                 
-                                                                                 #shiny::uiOutput(outputId= "flux_ens")
-                                                                                 shiny::uiOutput(outputId= "h2_fluxens"),
-                                                                                 shiny::plotOutput(outputId= "flux_ens") %>% withSpinner(color="#0dc5c1")
-                                                                                 
-                                                                                              )
-                                                                                        )
+                                                                                         tabPanel(title="1 Groupe",value = 2,fluidPage(
+                                                                                           shiny::uiOutput(outputId= "h2_fluxGRP"),
+                                                                                           plotOutput(outputId="flux_1grp") %>% withSpinner(color="#0dc5c1")
+                                                                                         )),
+                                                                                         tabPanel(title="Ensemble",value = 3,fluidPage(
+                                                                                           
+                                                                                           #shiny::uiOutput(outputId= "flux_ens")
+                                                                                           shiny::uiOutput(outputId= "h2_fluxens"),
+                                                                                          
+                                                                                            shiny::plotOutput(outputId= "flux_ens") %>% withSpinner(color="#0dc5c1")
+                                                                                           
+                                                                                                        )
+                                                                                                  )
+                                                                               
                                                                                
                                                                                
                                                                       ),id = "tabselected"))
