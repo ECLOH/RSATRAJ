@@ -2,7 +2,7 @@ library(ggplot2)
 library(ggalluvial)
 library(tidyr)
 library(dplyr)
-contrat <- read.csv("G:/dgsd/Dopro/Projets/2018/E - Etude_RSA/E-RSA_Appli_Shiny_Trajectoires/Multichannel/T_final_accompagnement.csv",
+contrat <- read.csv(#"G:/dgsd/Dopro/Projets/2018/E - Etude_RSA/E-RSA_Appli_Shiny_Trajectoires/Multichannel/T_final_accompagnement.csv",
                     head = TRUE, sep=";", colClasses=c(rep("factor",16)),  na.strings=c(""," " ,"NA"))
 contrat2<-tidyr::gather(contrat[,1:5],"year","n",-NIR)
 win.graph()

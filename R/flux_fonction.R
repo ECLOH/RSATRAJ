@@ -150,9 +150,9 @@ return(transitions)
 
 #' @examples
 
-tran<-flux_grp(data=contrat,seq.data = seq.contrat,col_periode=c("T2.2013","X2013.octobre","X2014.octobre","X2015.octobre","X2016.octobre"),label=c("T2-2013", "T4-2013", "T4-2014", "T4-2015", "T4-2016"),var_grp="acpam5",label_grp = "G1")
+#tran<-flux_grp(data=contrat,seq.data = seq.contrat,col_periode=c("T2.2013","X2013.octobre","X2014.octobre","X2015.octobre","X2016.octobre"),label=c("T2-2013", "T4-2013", "T4-2014", "T4-2015", "T4-2016"),var_grp="acpam5",label_grp = "G1")
 #Tracer le graphique
-tran$render() 
+#tran$render() 
 
 #######################################################################################################################################################
 
@@ -276,6 +276,6 @@ tran$render()
 
 #' @examples
 
-tran<-flux(data=contrat,seq.data = seq.contrat,col_periode=c("T2.2013","X2013.octobre","X2014.octobre","X2015.octobre","X2016.octobre"),label=c("T2-2013", "T4-2013", "T4-2014", "T4-2015", "T4-2016"))
+#tran<-flux(data=contrat,seq.data = seq.contrat,col_periode=c("T2.2013","X2013.octobre","X2014.octobre","X2015.octobre","X2016.octobre"),label=c("T2-2013", "T4-2013", "T4-2014", "T4-2015", "T4-2016"))
 # Tracer le graphique
-tran$render()
+#tran$render()
