@@ -48,7 +48,8 @@ for (i in 1:(nb_cluster_max-nb_cluster_min+1)){
 }
 v<-as.data.frame(cbind("Clusters"=c(nb_cluster_min:nb_cluster_max),v))
 v<-v[,-c(8,10)]
-return(v)
+liste_return<-list("dataFrame"=v,"tableau"=tab_ind)
+return(liste_return)
 }
 
 #' @examples
@@ -68,27 +69,7 @@ return(v)
 #' @return un tableau
 #' @export
 
-tableau_cluster<-function(indicateurs,nb_cluster_min,nb_cluster_max){
-  
-  if (floor(nb_cluster_min)!=nb_cluster_min){
-    stop(" 'nb_cluster_min' doit être un nombre entier ")
-  }
-  
-  if (!(nb_cluster_min >0)){
-    stop(" 'nb_cluster_min' doit être un positif ")
-  }
-  
-  if (floor(nb_cluster_max)!=nb_cluster_max){
-    stop(" 'nb_cluster_max' doit être un nombre entier ")
-  }
-  
-  if (!(nb_cluster_max >0)){
-    stop(" 'nb_cluster_max' doit être un positif ")
-  }
-  
-  if(nb_cluster_max<nb_cluster_min){
-    stop(" 'nb_cluster_max' doit être supérieur à 'nb_cluster_min' ")
-  }
+tableau_cluster<-function(indicateurs){
   
   ind=NULL
   for (i in (1:7)){
@@ -100,11 +81,11 @@ tableau_cluster<-function(indicateurs,nb_cluster_min,nb_cluster_max){
   
   
   indi_max <- formatter("span", 
-                        style = x ~ style(color = ifelse(x == max(x), "seagreen", "black"),
-                                          "font-weight" = ifelse(x == max(x), "bold", NA)))
+                        style = x ~ style(color = ifelse(x %in% max(x), "seagreen", "black"),
+                                          "font-weight" = ifelse(x %in% max(x), "bold", NA)))
   indi_min <- formatter("span", 
-                        style = x ~ style(color = ifelse(x == min(x), "seagreen", "black"),
-                                          "font-weight" = ifelse(x == min(x), "bold", NA)))
+                        style = x ~ style(color = ifelse(x %in% min(x), "seagreen", "black"),
+                                          "font-weight" = ifelse(x %in% min(x), "bold", NA)))
   
   tab<-formattable(indicateurs, list(PBC = indi_max,
                                      HG = indi_max,
@@ -115,9 +96,9 @@ tableau_cluster<-function(indicateurs,nb_cluster_min,nb_cluster_max){
                                      CHsq = indi_max,
                                      HC = indi_min,
                                      Clusters=formatter("span", 
-                                                        style = x ~ style(color = ifelse(x == indicateurs[which(indicateurs$Nb_indicateurs==max(indicateurs$Nb_indicateurs)),"Clusters"], "springgreen", "black"),
-                                                                          "font-weight" = ifelse(x == indicateurs[which(indicateurs$Nb_indicateurs==max(indicateurs$Nb_indicateurs)),"Clusters"], "bold", NA),
-                                                                          "font-size"= ifelse(x == indicateurs[which(indicateurs$Nb_indicateurs==max(indicateurs$Nb_indicateurs)),"Clusters"], "large", "small")))
+                                                        style = x ~ style(color = ifelse(x %in% indicateurs[which(indicateurs$Nb_indicateurs==max(indicateurs$Nb_indicateurs)),"Clusters"], "springgreen", "black"),
+                                                                          "font-weight" = ifelse(x %in% indicateurs[which(indicateurs$Nb_indicateurs==max(indicateurs$Nb_indicateurs)),"Clusters"], "bold", NA),
+                                                                          "font-size"= ifelse(x %in% indicateurs[which(indicateurs$Nb_indicateurs==max(indicateurs$Nb_indicateurs)),"Clusters"], "x-large", "medium")))
   ))
   
   
@@ -127,6 +108,6 @@ tableau_cluster<-function(indicateurs,nb_cluster_min,nb_cluster_max){
 
 #' @examples
 
-#tableau_cluster(indicateur,4,6)
+#tableau_cluster(indicateur$dataFrame)->tabForme
 
 
