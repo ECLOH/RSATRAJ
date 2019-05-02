@@ -69,11 +69,12 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              fluidRow(
                                                column(2,
                                                 shiny::selectInput(inputId = "plottype", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux"), selected = "d", multiple = FALSE),
+                                                shiny::selectInput(inputId = "souspop1", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
+                                                shiny::uiOutput(outputId= "slider1"),
+                                                shiny::uiOutput(outputId= "modalite1"),
                                                 conditionalPanel(condition="input.plottype=='flux'",
                                                   shiny::selectInput(inputId = "timeseq1", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
-                                                  shiny::selectInput(inputId = "souspop1", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
-                                                  shiny::uiOutput(outputId= "slider1"),
-                                                  shiny::uiOutput(outputId= "modalite1"),
+                                                  
                                                   shiny::actionButton(inputId = "graph1", label = "Afficher le graphique")
                                                   )
                                                ),
@@ -111,7 +112,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                                        h4("Paramètres des coûts :"),
                                                                        selectInput(inputId = "method_edit_cost", label = "method [seqcost(method = )]",
                                                                                    choices = c("CONSTANT" , "TRATE", "FUTURE" , "FEATURES" , "INDELS", "INDELSLOG"),
-                                                                                   selected = "CONSTANT", multiple = FALSE),
+                                                                                   selected = "TRATE", multiple = FALSE),
                                                                        uiOutput("SEQCOST_INPUTS") %>% withSpinner(color="#0dc5c1"),
                                                                        shiny::actionButton(inputId = "calculCouts", label = "Calcul des couts"))
                                                ),
@@ -174,18 +175,21 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              fluidRow(
                                                column(2,
                                                       shiny::selectInput(inputId = "plottypeG", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux"), selected = "d", multiple = FALSE),
-                                                      
+                                                      shiny::selectInput(inputId = "souspop2", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
+                                                      shiny::uiOutput(outputId= "slider2"),
+                                                      shiny::uiOutput(outputId= "modalite2"),
                                                       conditionalPanel(condition="input.plottypeG=='flux'",
                                                                        shiny::selectInput(inputId = "timeseq2", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
                                                                        shiny::selectInput(inputId="var_grp",label="Variable Groupe",choices=c(""),selected ="" ,multiple = TRUE),
-                                                                       shiny::selectInput(inputId = "souspop2", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
-                                                                       shiny::uiOutput(outputId= "slider2"),
-                                                                       shiny::uiOutput(outputId= "modalite2"),
+                                                                       
                                                                        shiny::actionButton(inputId = "graph2", label = "Afficher les graphiques")
                                                       )
                                                ),
-                                               column(10,
-                                                      plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
+                                               column(10,align="center",
+                                                      tags$h4("Graphique Global"),
+                                                      shiny::plotOutput("PlotGlobal") %>% withSpinner(color="#0dc5c1"),
+                                                      shiny::uiOutput("h4_fluxGrp"),
+                                                      shiny::plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
                                                       
                                                )
                                              )
