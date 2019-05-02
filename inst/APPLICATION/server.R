@@ -36,6 +36,7 @@ server <- function(input, output, session) {
       
     }
   })
+  #### Chargement premier fichier de données ####
   data<-reactive({
     req(trajs$dataSource)
 
@@ -64,21 +65,16 @@ server <- function(input, output, session) {
     return(trajs$df)
   })
   
-
-  output$str<-renderPrint({
-    req(data())
-    str(data())
-  })
-
+  
   output$contenu<-shiny::renderDataTable({
     req(data())
     data()
   })
-
   
   
+  
 
-data.seq<-eventReactive(eventExpr = input$ValidParametres, {
+  data.seq<-eventReactive(eventExpr = input$ValidParametres, {
   req(data())
 
   if (length(input$timecol)<2){
@@ -97,9 +93,18 @@ data.seq<-eventReactive(eventExpr = input$ValidParametres, {
   }
   else   {
     # updateNumericInput(session=session, inputId = "PAStrate",value=1)
-    seqdef(data()[,input$timecol],cpal = NULL)
+    s<-seqdef(data()[,input$timecol],cpal = NULL)
+    
+    if (length(alphabet(s))<=12){
+      #permet d'avoir les mêmes couleurs que pour les graphiques de flux
+      a<-col_flux(data = data(),seq.data = s)
+      attr(s, "cpal") <- unname(a[alphabet(s)])
+    }
+    
+    return(s)
   } 
   })
+
 
 
 observeEvent(eventExpr = data.seq(),{
@@ -222,7 +227,8 @@ observeEvent(eventExpr = data.seq(),{
    
    output$PLOT3<-renderPlot({
      req(input$plottype,data.seq())
-     seqplot(seqdata = data.seq(), type = input$plottype)
+       seqplot(seqdata = data.seq(), type = input$plottype)
+       
    })
    #### UPDATE "classtype" input selon input$type_distance ####
   observe({
