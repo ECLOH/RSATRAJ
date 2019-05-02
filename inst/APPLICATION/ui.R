@@ -24,8 +24,9 @@ library(WeightedCluster)
 ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,theme=shinytheme("flatly"),#fluidPage(theme = shinytheme("flatly"),
                          tabPanel("Paramètres de la session",
                                   #tabsetPanel(id = "tabpan",
-                                  #            tabPanel(title = "Paramètres de la session: ", 
+                                  #            tabPanel(title = "Paramètres de la session: ",
                                   sidebarPanel(fileInput(inputId="file1", label="Sélectionnez votre fichier source", multiple = FALSE, accept = NULL, width = NULL),
+              
                                   shiny::selectInput(inputId="sepcol", label= "Separateur de colonnes", choices=c("Virgule" = ",","Point-Virgule" = ";","Tabulation" = "\t"), selected=","),
                                   shiny::selectInput(inputId="dec", label= "Décimal", choices=c("Virgule" = ",","Point" = "."), selected="."),
                                   shiny::selectInput(inputId="endoding", label= "Encoding ?", choices=c(UTF8 = "UTF-8", Latin1 = "latin1"), selected = "UTF-8", multiple = FALSE, width = "50%"),
@@ -51,8 +52,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                          )
                          ,
                          mainPanel(
-                           shiny::dataTableOutput("contenu"),
-                           shiny::verbatimTextOutput("str")
+                           shiny::dataTableOutput("contenu")
                            )),
 
 
