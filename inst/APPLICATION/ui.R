@@ -66,9 +66,23 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              #dataTableOutput('TRAJS_TRATE')
                                     ),
                                     tabPanel(title = "Représentation des trajectoires ",
-                                             shiny::selectInput(inputId = "plottype", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r"), selected = "d", multiple = FALSE),
-                                             plotOutput("PLOT3")
-
+                                             fluidRow(
+                                               column(2,
+                                                shiny::selectInput(inputId = "plottype", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux"), selected = "d", multiple = FALSE),
+                                                conditionalPanel(condition="input.plottype=='flux'",
+                                                  shiny::selectInput(inputId = "timeseq1", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
+                                                  shiny::selectInput(inputId = "souspop1", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
+                                                  shiny::uiOutput(outputId= "slider1"),
+                                                  shiny::uiOutput(outputId= "modalite1"),
+                                                  shiny::actionButton(inputId = "graph1", label = "Afficher le graphique")
+                                                  )
+                                               ),
+                                               column(10,
+                                                      uiOutput("h4_fluxGlobal"),
+                                                      plotOutput("PLOT3")%>% withSpinner(color="#0dc5c1")
+                                             
+                                               )
+                                             )
                                     )
                                   )
                          ),
@@ -156,55 +170,74 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                     
                                     ),
                                     tabPanel(title="Visualisation des groupes",
-                                             plotOutput("PLOTG")),
-                                    tabPanel(title="Statistiques descriptives"),
-                                    
-                                    tabPanel(title="Graphique de flux",column(2,
-                                            
-                                            
-                                                                       shiny::selectInput(inputId = "timeseq", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
-
-                                                                       # conditionalPanel(condition="input.tabselected==2 | input.tabselected==3",
-                                                                       #                  selectInput(inputId="var_grp",label="Variable Groupe",choices=c("","acpam4","acpam5","acpam6"),selected ="" ,multiple = FALSE)),
-                                                                       conditionalPanel(condition="input.tabselected==2",
-                                                                                        selectInput(inputId="id_grp",label="Groupe",choices="",selected = "",multiple = FALSE)),
-                                                                       shiny::selectInput(inputId = "souspop", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
-                                                                       shiny::uiOutput(outputId= "slider"),
-                                                                       shiny::uiOutput(outputId= "modalite"),
-                                                                       conditionalPanel(condition="input.tabselected==1",
-                                                                                        shiny::actionButton(inputId = "graph1", label = "Afficher le graphique")),
-                                                                       conditionalPanel(condition="input.tabselected==2",
-                                                                                        shiny::actionButton(inputId = "graph2", label = "Afficher le graphique")),
-                                                                       conditionalPanel(condition="input.tabselected==3",
-                                                                                        shiny::actionButton(inputId = "graph3", label = "Afficher les graphiques"))
-                                                                       
-                                                                     ),
-                                             mainPanel( tabsetPanel(navbarMenu(title="Flux",
-                                                                               tabPanel(title="Global",value=1,fluidPage(
-                                                                                 shiny::uiOutput(outputId= "h2_fluxGlobal"),
-                                                                                 plotOutput(outputId="flux_global") %>% withSpinner(color="#0dc5c1")
-                                                                                 
-                                                                                
-                                                                               )),
-                                                                                         tabPanel(title="1 Groupe",value = 2,fluidPage(
-                                                                                           shiny::uiOutput(outputId= "h2_fluxGRP"),
-                                                                                           plotOutput(outputId="flux_1grp") %>% withSpinner(color="#0dc5c1")
-                                                                                         )),
-                                                                                         tabPanel(title="Ensemble",value = 3,fluidPage(
-                                                                                           
-                                                                                           #shiny::uiOutput(outputId= "flux_ens")
-                                                                                           shiny::uiOutput(outputId= "h2_fluxens"),
-                                                                                          
-                                                                                            shiny::plotOutput(outputId= "flux_ens") %>% withSpinner(color="#0dc5c1")
-                                                                                           
-                                                                                                        )
-                                                                                                  )
-                                                                               
-                                                                               
-                                                                               
-                                                                      ),id = "tabselected"))
-                                            
+                                             
+                                             fluidRow(
+                                               column(2,
+                                                      shiny::selectInput(inputId = "plottypeG", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux"), selected = "d", multiple = FALSE),
+                                                      
+                                                      conditionalPanel(condition="input.plottypeG=='flux'",
+                                                                       shiny::selectInput(inputId = "timeseq2", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
+                                                                       shiny::selectInput(inputId="var_grp",label="Variable Groupe",choices=c(""),selected ="" ,multiple = TRUE),
+                                                                       shiny::selectInput(inputId = "souspop2", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
+                                                                       shiny::uiOutput(outputId= "slider2"),
+                                                                       shiny::uiOutput(outputId= "modalite2"),
+                                                                       shiny::actionButton(inputId = "graph2", label = "Afficher les graphiques")
+                                                      )
+                                               ),
+                                               column(10,
+                                                      plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
+                                                      
+                                               )
                                              )
+                                        ),
+                                    tabPanel(title="Statistiques descriptives")
+                                    
+                                    # tabPanel(title="Graphique de flux",column(2,
+                                    #         
+                                    #         
+                                    #                                    shiny::selectInput(inputId = "timeseq", label = "Pas de temps", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
+                                    # 
+                                    #                                    # conditionalPanel(condition="input.tabselected==2 | input.tabselected==3",
+                                    #                                    #                  selectInput(inputId="var_grp",label="Variable Groupe",choices=c("","acpam4","acpam5","acpam6"),selected ="" ,multiple = FALSE)),
+                                    #                                    conditionalPanel(condition="input.tabselected==2",
+                                    #                                                     selectInput(inputId="id_grp",label="Groupe",choices="",selected = "",multiple = FALSE)),
+                                    #                                    shiny::selectInput(inputId = "souspop", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
+                                    #                                    shiny::uiOutput(outputId= "slider"),
+                                    #                                    shiny::uiOutput(outputId= "modalite"),
+                                    #                                    # conditionalPanel(condition="input.tabselected==1",
+                                    #                                    #                  shiny::actionButton(inputId = "graph1", label = "Afficher le graphique")),
+                                    #                                    conditionalPanel(condition="input.tabselected==2",
+                                    #                                                     shiny::actionButton(inputId = "graph2", label = "Afficher le graphique")),
+                                    #                                    conditionalPanel(condition="input.tabselected==3",
+                                    #                                                     shiny::actionButton(inputId = "graph3", label = "Afficher les graphiques"))
+                                    #                                    
+                                    #                                  ),
+                                    #          mainPanel( tabsetPanel(navbarMenu(title="Flux",
+                                    #                                            # tabPanel(title="Global",value=1,fluidPage(
+                                    #                                            #   shiny::uiOutput(outputId= "h2_fluxGlobal"),
+                                    #                                            #   plotOutput(outputId="flux_global") %>% withSpinner(color="#0dc5c1")
+                                    #                                            #
+                                    #                                            #
+                                    #                                            # )),
+                                    #                                                      tabPanel(title="1 Groupe",value = 2,fluidPage(
+                                    #                                                        shiny::uiOutput(outputId= "h2_fluxGRP"),
+                                    #                                                        plotOutput(outputId="flux_1grp") %>% withSpinner(color="#0dc5c1")
+                                    #                                                      )),
+                                    #                                                      tabPanel(title="Ensemble",value = 3,fluidPage(
+                                    # 
+                                    #                                                        #shiny::uiOutput(outputId= "flux_ens")
+                                    #                                                        shiny::uiOutput(outputId= "h2_fluxens"),
+                                    # 
+                                    #                                                         shiny::plotOutput(outputId= "flux_ens") %>% withSpinner(color="#0dc5c1")
+                                    # 
+                                    #                                                                     )
+                                    #                                                               )
+                                    # 
+                                    # 
+                                    # 
+                                    #                                   ),id = "tabselected"))
+                                    # 
+                                    #          )
 
                                   ) 
                          )
