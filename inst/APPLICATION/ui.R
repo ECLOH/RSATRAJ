@@ -68,7 +68,18 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                     tabPanel(title = "Représentation des trajectoires ",
                                              fluidRow(
                                                column(2,
-                                                shiny::selectInput(inputId = "plottype", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux","Sous-séquences triées selon leur support"="sous.seq"), selected = "d", multiple = FALSE),
+                                                shiny::selectInput(inputId = "plottype", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux","Sous-séquences triées selon leur support"="sous.seq","Sous-séquences choisies"="sous.seq.ch"), selected = "d", multiple = FALSE),
+                                                conditionalPanel(condition="input.plottype=='sous.seq.ch'",
+                                                                 wellPanel(shiny::selectInput(inputId = "par.sous.seq1",label = "Etat 1",choices = "",multiple = FALSE),
+                                                                     shiny::selectInput(inputId = "par.sous.seq2",label = "Etat 2",choices = "",multiple = FALSE),
+                                                                     shiny::selectInput(inputId = "par.sous.seq3",label = "Etat 3",choices = "",multiple = FALSE),
+                                                                     shiny::numericInput(inputId = "ligne.suppr", label = "Ligne à supprimer", min = 1, max = 100, value = 1),
+                                                                     shiny::actionButton(inputId = "add.button", label = "Ajouter", icon = icon("plus")),
+                                                                     br(),br(),
+                                                                     shiny::actionButton(inputId = "delete.button", label = "Supprimer", icon = icon("minus"))
+                                                                 )
+                                                ),
+                                                
                                                 shiny::selectInput(inputId = "souspop1", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
                                                 shiny::uiOutput(outputId= "slider1"),
                                                 shiny::uiOutput(outputId= "modalite1"),
@@ -77,14 +88,18 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                   
                                                   shiny::actionButton(inputId = "graph1", label = "Afficher le graphique")
                                                   ),
+                                                # conditionalPanel(condition="input.plottype=='sous.seq.ch'",
+                                                #                  shiny::actionButton(inputId = "graphSousSeq", label = "Afficher le graphique")),
                                                 conditionalPanel(condition="input.plottype=='sous.seq'",
                                                                  shiny::sliderInput(inputId = "pmin1", label = "Support minimal",min=0,max=1,value=0.15,step = 0.01)
                                               
                                                )),
                                                column(10,align="center",
+                                                      uiOutput("txtAjoutSeq"),
                                                       uiOutput("h4_fluxGlobal"),
                                                       plotOutput("PLOT3")%>% withSpinner(color="#0dc5c1"),
-                                                      dataTableOutput("subsTable")
+                                                      uiOutput("subsTable")
+                                                      
                                              
                                                )
                                              )
@@ -98,7 +113,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              fluidRow(
                                                column(3,
                                                       h4("Paramètres généraux de la classification :"),
-                                                      shiny::selectInput(inputId = "selection_rows", label = "Sur quelles données voulez-vous travailler?", c("Un echantillon"="Sample", "Des trajectoires uniques avec leurs poids"="unique.traj", "Toutes les trajectoires"="all"), selected = "Sample", multiple = FALSE),
+                                                      shiny::selectInput(inputId = "selection_rows", label = "Sur quelles données voulez-vous travailler?", c("Un echantillon"="Sample", "Des trajectoires uniques avec leurs poids"="unique.traj", "Toutes les trajectoires"="all"), selected = "all", multiple = FALSE),
                                                       shiny::uiOutput("TEXT_NB_UNIQUE_TRAJS"),
                                                       hr(),
                                                       conditionalPanel(condition="input.selection_rows=='Sample'",
@@ -197,14 +212,16 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       
                                                ),
                                                column(10,align="center",
+                                                      
                                                       shiny::uiOutput("TitreGlobal"),
                                                       shiny::uiOutput("GraphGlobal"),
                                                       shiny::uiOutput("h4_fluxGrp"),
-                                                      shiny::plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
                                                       
-                                                      
-                                               )
-                                             )
+                                                      shiny::plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1"),
+                                                      shiny::uiOutput("subsTableG")
+                                                      ))
+                                             
+    
                                         ),
                                     tabPanel(title="Statistiques descriptives")
                                     
