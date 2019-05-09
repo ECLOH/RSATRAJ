@@ -18,6 +18,7 @@ library(dplyr)
 library(shinyWidgets)
 library(formattable)
 library(WeightedCluster)
+library(stringr)
 options(shiny.maxRequestSize=700*1024^2) 
 #### UI ####
 
@@ -117,8 +118,9 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                column(10,align="center",
                                                       uiOutput("txtAjoutSeq"),
                                                       uiOutput("h4_fluxGlobal"),
-                                                      plotOutput("PLOT3")%>% withSpinner(color="#0dc5c1"),
-                                                      uiOutput("subsTable")
+                                                      uiOutput("PLOT3")%>% withSpinner(color="#0dc5c1")
+                                                      
+                                                      #,uiOutput("subsTable")
                                                       
                                              
                                                )
@@ -215,7 +217,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              
                                              fluidRow(
                                                column(2,
-                                                      shiny::selectInput(inputId = "plottypeG", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux","Séquences discriminantes(Pearson)"="Pearson"), selected = "d", multiple = FALSE),
+                                                      shiny::selectInput(inputId = "plottypeG", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux","Sous-séquences discriminantes(Pearson)"="Pearson","Sous-séquences choisies (Pearson)"="Pearson.ch"), selected = "d", multiple = FALSE),
 
                                                           shiny::selectInput(inputId = "souspop2", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
                                                           shiny::uiOutput(outputId= "slider2"),
@@ -228,7 +230,8 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                                        shiny::actionButton(inputId = "graph2", label = "Afficher les graphiques")
                                                       ),
                                                       conditionalPanel(condition="input.plottypeG=='Pearson'",
-                                                        shiny::sliderInput(inputId = "pmin",label = "Support minimal (en pourcentage)",min=0,max=1,value=0.15,step = 0.01))
+                                                        shiny::sliderInput(inputId = "pmin",label = "Support minimal (en pourcentage)",min=0,max=1,value=0.15,step = 0.01),
+                                                        shiny::numericInput(inputId = "nbAffiche",label = "Nombre d'états affichés",min=1,max=1,value=1,step=1))
                                                       
                                                ),
                                                column(10,align="center",
@@ -237,8 +240,8 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       shiny::uiOutput("GraphGlobal"),
                                                       shiny::uiOutput("h4_fluxGrp"),
                                                       
-                                                      shiny::plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1"),
-                                                      shiny::uiOutput("subsTableG")
+                                                      shiny::plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
+                                                      #,shiny::uiOutput("subsTableG")
                                                       ))
                                              
     
