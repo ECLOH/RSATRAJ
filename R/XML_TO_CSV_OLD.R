@@ -135,8 +135,3 @@ XML_TO_CSV<-function(chemin.xml="rsa.RSABEM.00122018.A0110442.xml/rsa.RSABEM.001
 #   if(return.df==TRUE){
 #   return(final.df)
 #   }
-<<<<<<< HEAD
-# }
-=======
-# }
->>>>>>> 3e88b80ac64a0376757c807c2e8638a3a91d833c

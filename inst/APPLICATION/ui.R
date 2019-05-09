@@ -18,29 +18,49 @@ library(dplyr)
 library(shinyWidgets)
 library(formattable)
 library(WeightedCluster)
-
+options(shiny.maxRequestSize=700*1024^2) 
 #### UI ####
 
 ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,theme=shinytheme("flatly"),#fluidPage(theme = shinytheme("flatly"),
                          tabPanel("Paramètres de la session",
                                   #tabsetPanel(id = "tabpan",
                                   #            tabPanel(title = "Paramètres de la session: ",
-                                  sidebarPanel(fileInput(inputId="file1", label="Sélectionnez votre fichier source", multiple = FALSE, accept = NULL, width = NULL),
-              
-                                  shiny::selectInput(inputId="sepcol", label= "Separateur de colonnes", choices=c("Virgule" = ",","Point-Virgule" = ";","Tabulation" = "\t"), selected=","),
-                                  shiny::selectInput(inputId="dec", label= "Décimal", choices=c("Virgule" = ",","Point" = "."), selected="."),
-                                  shiny::selectInput(inputId="endoding", label= "Encoding ?", choices=c(UTF8 = "UTF-8", Latin1 = "latin1"), selected = "UTF-8", multiple = FALSE, width = "50%"),
-                                  shiny::checkboxInput(inputId = "header", label="Header ?",value=FALSE),  
-                                    shiny::checkboxInput(inputId = "rowname", label="Rownames ?",value=FALSE),
+                                  sidebarPanel(
+                                    h3("Chargement des fichiers de données"), 
+                                    width = 6,
+                                    shiny::selectInput(inputId = "DataType", label = "Choix du type de données", 
+                                                       choices = c("Un objet RData contenant de multiples data.frame"="objet", 
+                                                                   "Un seul fichier.csv contenant des données prêtes à l'emploi"="fichier"), 
+                                                       multiple = FALSE, selected = "fichier"),
                                     conditionalPanel(
-                                      condition = "input.rowname == true",
-                                      shiny::selectInput(inputId="rownames_par", label="Variable rowname", choices = "", multiple = FALSE,selected = NULL, selectize = TRUE)),
-                                  shiny::selectInput(inputId = "na", label = "na.strings", choices = c("Vide" , "Espace" = " ", "NA" = "NA"), selected = "NA", multiple = TRUE, selectize = TRUE),  
-                                  shiny::selectInput(inputId = "timecol", label = "Variables temporelles", choices = "", selected = "", multiple = TRUE, selectize = TRUE),
-                                  
-                                  
-                                  shiny::dateRangeInput(inputId = "date.range", label = "Dates de début et de fin",
-                                                        format = "mm-yyyy"),
+                                      condition = "input.DataType == 'fichier'",
+                                
+                                      fileInput(inputId="file1", label="Sélectionnez votre fichier source:", 
+                                              multiple = FALSE, accept = NULL, width = NULL),
+                                      shiny::selectInput(inputId="sepcol", label= "Separateur de colonnes", choices=c("Virgule" = ",","Point-Virgule" = ";","Tabulation" = "\t"), selected=","),
+                                      shiny::selectInput(inputId="dec", label= "Décimal", choices=c("Virgule" = ",","Point" = "."), selected="."),
+                                      shiny::selectInput(inputId="endoding", label= "Encoding ?", choices=c(UTF8 = "UTF-8", Latin1 = "latin1"), selected = "UTF-8", multiple = FALSE, width = "50%"),
+                                      shiny::checkboxInput(inputId = "header", label="Header ?",value=FALSE),  
+                                      shiny::checkboxInput(inputId = "rowname", label="Rownames ?",value=FALSE),
+                                      conditionalPanel(
+                                        condition = "input.rowname == true",
+                                        shiny::selectInput(inputId="rownames_par", label="Variable rowname", 
+                                                           choices = "", multiple = FALSE,selected = NULL, selectize = TRUE)),
+                                      shiny::selectInput(inputId = "na", label = "na.strings", choices = c("Vide" , "Espace" = " ", "NA" = "NA"), selected = "NA", multiple = TRUE, selectize = TRUE)),
+                                    conditionalPanel(
+                                      condition = "input.DataType == 'objet'",
+                                      h5("INFO: pour des raisons de sécurité il n'est pas possible de charger directement un dossier dans un navigateur web."),
+                                      h5("Vous pouvez utiliser la fonction LIST_MULTIPLE_CSV du package RSATRAJ pour créer l'objet RData à partir de mulitples fichiers .csv"),
+                                      fileInput(inputId="objetFile", 
+                                                label="Sélectionner l'objet .RData contenant les multiples data.frame", 
+                                                multiple = TRUE, accept = NULL, width = NULL),
+                                      shiny::textOutput("CONTROLDATA"))
+                                  ),
+                                  sidebarPanel(
+                                    h3("Paramétrage des trajectoires"),
+                                    width = 6,
+                                  shiny::selectInput(inputId = "timecol", label = "Variables temporelles", choices = "", selected = "PrestationRSA.SituationDossierRSA.EtatDossierRSA.ETATDOSRSA", multiple = TRUE, selectize = TRUE),
+                                  shiny::uiOutput("DATA_UI"),
                                   shiny::selectInput(inputId = "mode", label = "Mode de travail:", 
                                                      choices = c("Flux d'entrants", "Flux en continu"), 
                                                      selected = c("Flux en continu"), multiple = FALSE),

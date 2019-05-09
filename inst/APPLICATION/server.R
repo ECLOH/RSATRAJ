@@ -36,9 +36,30 @@ server <- function(input, output, session) {
       
     }
   })
-  #### Chargement premier fichier de données ####
+#### Chargement premier fichier de données ####
+  #### OBJET .RData ####
+  list_csv<-reactive({
+    if(input$DataType=="objet"){
+        if ( is.null(input$objetFile)) return(NULL)
+        inFile <- input$objetFile
+        file <- inFile$datapath
+        # load the file into new environment and get it from there
+        e = new.env()
+        name <- load(file, envir = e)
+        data <- e[[name]]
+        #
+        mycolumns<-unique(unlist(Reduce(intersect,list(lapply(X = data, FUN = names))), 
+                                 use.names = FALSE))
+        updateSelectInput(session = session, inputId = "timecol", choices = mycolumns)
+        #
+        return(data)
+      }
+  })
+  renderPrint(print(length(list_csv())))->output$CONTROLDATA
+ #### Un fichier source ####
   data<-reactive({
     req(trajs$dataSource)
+    if(input$DataType=="fichier"){ #### Chargement d'un seul fichier CSV ####
 
     if (input$rowname==TRUE && input$rownames_par=="")
     {
@@ -48,7 +69,12 @@ server <- function(input, output, session) {
       updateSelectInput(session = session, inputId = "rownames_par",choices = c("",colonneID))
       }
     if (input$rowname==TRUE && input$rownames_par!=""){
-      userData <- read.csv(file = input$file1$datapath, sep = input$sepcol, encoding = input$endoding,row.names = input$rownames_par,header=input$header,na.strings = argna(),dec=input$dec)
+      userData <- read.csv(file = input$file1$datapath, 
+                           sep = input$sepcol, 
+                           encoding = input$endoding,
+                           row.names = input$rownames_par,
+                           header=input$header,na.strings = argna(),
+                           dec=input$dec)
       mycolumns<-c(colnames(userData))
       updateSelectInput(session = session, inputId = "timecol", choices = mycolumns)
       trajs$df<- userData
@@ -57,25 +83,39 @@ server <- function(input, output, session) {
 
     if(input$rowname==FALSE){
       userData <- read.csv(file = input$file1$datapath, sep = input$sepcol, encoding = input$endoding,header=input$header,na.strings = argna(),dec=input$dec)
-
-      colonneListe <- c(colnames(userData))
-
-      updateSelectInput(session = session, inputId = "timecol", choices = colonneListe)
+      mycolumns <- c(colnames(userData))
+      updateSelectInput(session = session, inputId = "timecol", choices = mycolumns)
       trajs$df<- userData}
     return(trajs$df)
+    } else {
+        
+      }
   })
-  
-  
   output$contenu<-shiny::renderDataTable({
     req(data())
     data()
   })
   
-  
-  
-
+  #### Paramétrage des trajectoires ####
+  output$DATA_UI<-shiny::renderUI({
+    if(input$DataType=="fichier"){
+      shiny::dateRangeInput(inputId = "date.range", label = "Dates de début et de fin",
+                            format = "mm-yyyy")->the.ui
+    } else {
+      if(input$DataType=="objet"){
+        names(list_csv())->names.pick
+        list(
+          shiny::selectInput(inputId = "PICKDATE1", label = "Debut:",
+                           choices = names.pick, multiple = FALSE),
+          shiny::selectInput(inputId = "PICKDATE1", label = "Fin:",
+                             choices = names.pick, multiple = FALSE))->the.ui
+      } else {h3("error")->the.ui}
+    }
+    the.ui
+      })
   data.seq<-eventReactive(eventExpr = input$ValidParametres, {
   req(data())
+    if(DataType=="fichier"){
 
   if (length(input$timecol)<2){
     showModal(modalDialog(
@@ -103,6 +143,10 @@ server <- function(input, output, session) {
     
     return(s)
   } 
+    } else {
+      if(DataType=="objet"){
+      }
+    }
   })
 
 
