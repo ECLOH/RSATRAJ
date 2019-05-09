@@ -214,20 +214,7 @@ observeEvent(eventExpr = data.seq(),{
      trate.long
    })
    #### Type de graph ####
-   
-   
-   # pp<-eventReactive(input$plottype, {
-   #   req(data.seq())
-   #   plot3<-seqplot(seqdata = data.seq(), type = input$plottype)
-   #   plot3
-   # })
-   # output$PLOT3 <- renderPlot({
-   #   req(pp())
-   #   pp()
-   # },
-   # height = 500, width = 1000)
-   
-   
+
    observeEvent(eventExpr = input$ValidParametres,{
      req(data.seq())
      updateSelectInput(session = session, inputId = "timeseq1", choices = input$timecol)
@@ -261,48 +248,52 @@ observeEvent(eventExpr = data.seq(),{
      }
    })
    
-   #### Selection pour graphiques de flux ####
+   #### Selection des sous populations ####
    data.select1<-reactive({
      req(input$souspop1)
-     if (req(input$plottype) == "flux"){
+     
        if (input$souspop1=="Aucune" || input$souspop1==""){
          data.select<-data()
        }else{
-         req(input$souspop_modalite1)
+         
          if (is.factor(data()[,input$souspop1])){
+           req(input$souspop_modalite1)
            data.select<-data()[(data()[,input$souspop1] %in% c(input$souspop_modalite1)),]
          }
-         if (is.numeric(data()[,input$souspop1]) | is.integer(data()[,input$souspop1])){
-           
+         if (is.numeric(data()[,input$souspop1])){
+           req(input$sous_pop_num1)
            data.select<-data()[which(data()[,input$souspop1]<= max(input$sous_pop_num1,na.rm=TRUE) & data()[,input$souspop1]>= min(input$sous_pop_num1,na.rm=TRUE)),]
            
          }
          
        }
        return(data.select)
-     }
+     
    })
    
    seq.select1<-reactive({
      req(input$souspop1)
-     if (req(input$plottype) == "flux"){
+     
        if (input$souspop1=="Aucune" || input$souspop1==""){
          seq.select<-data.seq()
        }else{
-         req(input$souspop_modalite1)
+        
          if (is.factor(data()[,input$souspop1])){
+           req(input$souspop_modalite1)
            seq.select<-data.seq()[(data()[,input$souspop1] %in% c(input$souspop_modalite1)),]
          }
-         if (is.numeric(data()[,input$souspop1]) | is.integer(data()[,input$souspop1])){
-           
+         if (is.numeric(data()[,input$souspop1])){
+           req(input$sous_pop_num1)
            seq.select<-data.seq()[which(data()[,input$souspop1]<= max(input$sous_pop_num1,na.rm=TRUE) & data()[,input$souspop1]>= min(input$sous_pop_num1,na.rm=TRUE)),]
-           
+
          }
        }
-       
+
        return(seq.select)
-     } 
+     
    })
+
+   
    
    col_periode1<-eventReactive(eventExpr = length(input$timeseq1)>=2,{
      input$timeseq1
@@ -314,40 +305,164 @@ observeEvent(eventExpr = data.seq(),{
    }
    )
    
+   #### Graphique sous séquence ####
+   event.seqGlobal<-reactive({
+     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
+       req(seq.select1())
+       return(seqecreate(seq.select1()[order(row.names(seq.select1())), ], tevent="state", use.labels=FALSE))
+     }
+  })
    
+   subsGlobal<-reactive({
+     if (req(input$plottype) == "sous.seq"){
+       req(event.seqGlobal())
+       return(seqefsub(event.seqGlobal(),pmin.support=input$pmin1))
+     }
+     if (req(input$plottype) == "sous.seq.ch"){
+       req(event.seqGlobal(),values$df)
+       if(nrow(values$df)>0){
+         
+         vectSeq<-vect.sous.seq(data = values$df)
+         seqefsub(event.seqGlobal(),str.subseq=vectSeq)->p
+         return(p[order(p$data$Support,decreasing = TRUE),])
+       }
+         
+     }
+   })
+   
+   output$txtAjoutSeq<-renderUI({
+     if (req(input$plottype) == "sous.seq.ch"){
+       if(!(nrow(values$df)>0)){
+         output$txtAjout<-renderText({
+           return("Ajouter une séquence en choissant une succession d'état et en appuyant sur ajouter")
+         })
+         return(textOutput("txtAjout"))
+       }
+     }
+   })
+   
+   output$subsTable<-renderUI({
+     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
+         output$tableSubs<-renderDataTable({
+             req(subsGlobal())
+             sousSeqData<-cbind(as.character(subsGlobal()$subseq),subsGlobal()$data)
+             
+             names(sousSeqData)<-c("Sous-séquences","Support","Count")
+             if(req(input$plottype) == "sous.seq.ch"){
+               
+               rownames(sousSeqData)<-(1:nrow(sousSeqData))
+             }
+             return(sousSeqData)
+        })
+         return(dataTableOutput("tableSubs"))
+     }    
+   })
+   
+   ##### Graphique sous-séquences choisies #####
+      ### Mise a jour des inputs permettant de choisir des états ###
+   observe({
+     input$plottype
+     isolate({
+       if (req(input$plottype)=="sous.seq.ch"){
+        req(seq.select1())
+       updateSelectInput(session = session,inputId = "par.sous.seq1",choices = alphabet(seq.select1()))
+       updateSelectInput(session = session,inputId = "par.sous.seq2",choices = alphabet(seq.select1()))
+       updateSelectInput(session = session,inputId = "par.sous.seq3",choices = cbind(" ",alphabet(seq.select1())))
+       }
+     })
+   })
+   
+   observe({
+     updateNumericInput(session = session,inputId = "ligne.suppr",max=nrow(values$df))
+   })
+   
+   values <- reactiveValues()
+   values$df <-  as.data.frame(setNames(replicate(3,character(0), simplify = F),c("Etat1","Etat2","Etat3") ))
+   
+   observeEvent(input$add.button,{
+     req(input$par.sous.seq1,input$par.sous.seq2)
+     newRow <- data.frame(input$par.sous.seq1, input$par.sous.seq2,input$par.sous.seq3)
+     colnames(newRow)<-colnames(values$df)
+     values$df <- rbind(values$df,newRow)
+     rownames(values$df)<-(1:nrow(values$df))
+   })
+   
+   observeEvent(input$delete.button,{
+     if(nrow(values$df)>1){
+      values$df[!(vect.sous.seq(values$df) %in% as.character(subsGlobal()$subseq)[input$ligne.suppr]),]->values$df
+       rownames(values$df)<-(1:nrow(values$df))
+     }else {
+       values$df <- values$df[-nrow(values$df), ]
+     }
+   })  
+   observe({
+     req(values$df)
+     values$df<-unique(values$df)
+   })
+   
+
+   
+        #### Graphiques ####
    output$PLOT3<-renderPlot({
      req(input$plottype,data.seq())
      if (req(input$plottype) == "flux"){
        req(flux1())
-       flux1()
-     }else {
-       return(seqplot(seqdata = data.seq(), type = input$plottype))
+       return(flux1())
      }
+     if (req(input$plottype) %in% c("d", "f", "I", "ms", "mt", "r")) {
+       return(seqplot(seqdata = seq.select1(), type = input$plottype))
+     }
+     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
+       req(subsGlobal())
+       return( plot(subsGlobal(),ylim=c(0,1),main = "Graphique des sous-séquences selon leur support") )
+     }
+
    })
    
    ### Titre rappelant la selection choisie #####
-   eventReactive(eventExpr = input$graph1,{
-     if (input$souspop1=="Aucune" || input$souspop1==""){
-       return("Vous avez sélectionné auncune sous population")
-     }else{
-       req(input$souspop_modalite1)
-       if (is.factor(data()[,input$souspop1])){
-         return(paste("Vous avez sélectionné la sous population",input$souspop1, "avec les modalités",paste(input$souspop_modalite1,collapse = ", ")))
-       }
-       if (is.numeric(data()[,input$souspop1]) | is.integer(data()[,input$souspop1])){
+        reactive({
+       if(input$plottype=="flux"){
+         input$graph1
+         isolate({
+         if (input$souspop1=="Aucune" || input$souspop1==""){
+           return("Vous avez sélectionné auncune sous population")
+         }else{
+           
+           if (is.factor(data()[,input$souspop1])){
+             req(input$souspop_modalite1)
+             return(paste("Vous avez sélectionné la sous population",input$souspop1, "avec les modalités",paste(input$souspop_modalite1,collapse = ", ")))
+           }
+           if (is.numeric(data()[,input$souspop1])){
+             
+             return(paste("Vous avez sélectionné la sous population",input$souspop1, "entre",min(input$sous_pop_num1,na.rm=TRUE),"et",max(input$sous_pop_num1,na.rm=TRUE)))
+             
+           }
+         }
+        })
          
-         return(paste("Vous avez sélectionné la sous population",input$souspop1, "entre",min(input$sous_pop_num1,na.rm=TRUE),"et",max(input$sous_pop_num1,na.rm=TRUE)))
-         
+       } else {
+         if (input$souspop1=="Aucune" || input$souspop1==""){
+           return("Vous avez sélectionné auncune sous population")
+         }else{
+           
+           if (is.factor(data()[,input$souspop1])){
+             req(input$souspop_modalite1)
+             return(paste("Vous avez sélectionné la sous population",input$souspop1, "avec les modalités",paste(input$souspop_modalite1,collapse = ", ")))
+           }
+           if (is.numeric(data()[,input$souspop1])){
+             
+             return(paste("Vous avez sélectionné la sous population",input$souspop1, "entre",min(input$sous_pop_num1,na.rm=TRUE),"et",max(input$sous_pop_num1,na.rm=TRUE)))
+             
+           }
+         }
        }
-     }
      
    })->text1
+   
    renderUI({
      req(text1())
-     if (req(input$plottype) == "flux"){
          renderText(text1())->output$textGlobal
          return(h4(textOutput("textGlobal")))
-     }
    })->output$h4_fluxGlobal
    
    #### UPDATE "classtype" input selon input$type_distance ####
@@ -486,8 +601,10 @@ observeEvent(eventExpr = data.seq(),{
            })
          
            
-         return(tagList(fluidRow(column(12,
-                                        splitLayout(
+         return(tagList(
+           noUiSliderInput(inputId = "SliderGrp",label="Nombre de groupes",min=2,max=10,value = c(4,6),limit=2,step=1,margin=2,behaviour = "drag"),
+           fluidRow(column(12,
+                    splitLayout(
            plotOutput("dendo") %>% withSpinner(color="#0dc5c1"),
            plotOutput("inertie") %>% withSpinner(color="#0dc5c1"))))
            
@@ -508,7 +625,7 @@ observeEvent(eventExpr = data.seq(),{
           #### Tableau indicateurs ####
    
    output$tabind<-renderUI({
-     req(SEQCLASS())
+     req(SEQCLASS(),input$SliderGrp)
      input$calculCLUST
      input$SliderGrp
      isolate({
@@ -525,22 +642,22 @@ observeEvent(eventExpr = data.seq(),{
 
    
    output$classif_grp<-renderUI({
-     req(SEQCLASS())
+     req(SEQCLASS(),input$SliderGrp)
      input$calculCLUST
      input$SliderGrp
      isolate({
        if (input$cluster_type=="CAHPAM"){
          return(tagList(
-           fluidRow(
-             column(4,
-                    shiny::numericInput(inputId = "nb_cluster",label="Nombre de groupes choisi",step=1,value = min(input$SliderGrp,na.rm=TRUE)+1,min=min(input$SliderGrp,na.rm=TRUE),max=max(input$SliderGrp,na.rm=TRUE))
-             ),
-             column(2,
-                    shiny::actionButton(inputId = "Bouton_Clustering",label = "Faire les groupes")
-                    )
+           
+           column(4,
+                  shiny::numericInput(inputId = "nb_cluster",label="Nombre de groupes choisi",step=1,value = min(input$SliderGrp,na.rm=TRUE)+1,min=min(input$SliderGrp,na.rm=TRUE),max=max(input$SliderGrp,na.rm=TRUE))
+           ),
+           column(2,
+                  shiny::actionButton(inputId = "Bouton_Clustering",label = "Faire les groupes")
            )
+           
          ))
-                        
+         
        }
      })
    })
@@ -548,10 +665,18 @@ observeEvent(eventExpr = data.seq(),{
    
    dataCluster<-eventReactive(eventExpr = input$Bouton_Clustering,{
      indicateur<-Creation_indicateur(nb_cluster_min=min(input$SliderGrp,na.rm=TRUE),nb_cluster_max=max(input$SliderGrp,na.rm=TRUE),mat_dist=SEQDIST(),intialclust=SEQCLASS())
-     data_cluster(indicateur,data(),input$nb_cluster)
+     return(data_cluster(indicateur,data(),input$nb_cluster))
    })
    
-
+   output$textCluster<-renderText({
+     req(dataCluster())
+     
+     input$Bouton_Clustering
+     isolate({
+       return(paste("Vous avez créé",input$nb_cluster,"groupes"))
+     })
+     
+   })
    
 #
    ### PLOT G  ####
@@ -588,13 +713,18 @@ observeEvent(eventExpr = data.seq(),{
    })
    
    grp<-reactive({
-     if (input$plottypeG=="flux"){
-       req(data.select())
-       unique(data.select()[,"Clustering"])
-     }else{
-       req(dataCluster())
-       unique(dataCluster()[,"Clustering"])
-     }
+     #if (input$plottypeG=="flux"){
+       input$souspop_modalite2
+       input$souspop2
+       input$sous_pop_num2
+       isolate({
+         req(data.select2())
+         unique(data.select2()[,"Clustering"])
+       })
+     # }else{
+     #   req(dataCluster())
+     #   unique(dataCluster()[,"Clustering"])
+     # }
    })
 
    observe({
@@ -606,23 +736,24 @@ observeEvent(eventExpr = data.seq(),{
    data.select2<-reactive({
      req(input$souspop2,dataCluster())
 
-     if (req(input$plottypeG) == "flux"){
+     #if (req(input$plottypeG) == "flux"){
        if (input$souspop2=="Aucune" || input$souspop2==""){
          data.selectG<-dataCluster()
        }else{
-         req(input$souspop_modalite2)
+         
          if (is.factor(dataCluster()[,input$souspop2])){
+           req(input$souspop_modalite2)
            data.selectG<-dataCluster()[(dataCluster()[,input$souspop2] %in% c(input$souspop_modalite2)),]
          }
-         if (is.numeric(dataCluster()[,input$souspop2]) | is.integer(dataCluster()[,input$souspop2])){
-           
+         if (is.numeric(dataCluster()[,input$souspop2])){
+           req(input$sous_pop_num2)
            data.selectG<-dataCluster()[which(dataCluster()[,input$souspop2]<= max(input$sous_pop_num2,na.rm=TRUE) & dataCluster()[,input$souspop2]>= min(input$sous_pop_num2,na.rm=TRUE)),]
            
          }
          
        }
        return(data.selectG)
-     }
+     #}
    })
    
    seq.select2<-reactive({
@@ -631,12 +762,13 @@ observeEvent(eventExpr = data.seq(),{
      if (input$souspop2=="Aucune" || input$souspop2==""){
        seq.selectG<-data.seq()
      }else{
-       req(input$souspop_modalite2)
+       
        if (is.factor(data()[,input$souspop2])){
+         req(input$souspop_modalite2)
          seq.selectG<-data.seq()[(data()[,input$souspop2] %in% c(input$souspop_modalite2)),]
        }
-       if (is.numeric(data()[,input$souspop2]) | is.integer(data()[,input$souspop2])){
-         
+       if (is.numeric(data()[,input$souspop2])){
+         req(input$sous_pop_num2)
          seq.selectG<-data.seq()[which(data()[,input$souspop2]<= max(input$sous_pop_num2,na.rm=TRUE) & data()[,input$souspop2]>= min(input$sous_pop_num2,na.rm=TRUE)),]
          
        }
@@ -646,258 +778,183 @@ observeEvent(eventExpr = data.seq(),{
      
    })
    
-   
-   
-   
-   ordre<-reactive({
-     req(grp())
-     return(taille_graph_flux(length(grp())))
+   ### Selectionne de la période temporelle ###
+   col_periode2<-eventReactive(eventExpr = length(input$timeseq2)>=2,{
+     input$timeseq2
    })
-   haut<-function(){
-     ordre2<-ordre()
-     return(dim(ordre2)[1]*400)}
    
    
-   output$PLOTG <- renderPlot({
-     req(data.seq(),input$plottypeG)
-     seqplot(seqdata = data.seq(), type = input$plottypeG, group = dataCluster()[,"Clustering"])
-   },width = 1300,height = haut)
+
+   ### Graphique de flux pour les groupes ###
    
-   
-   
-   
-   ########################################## Grpahique de flux ##########################################
-   
-   # observeEvent(eventExpr = input$ValidParametres,{
-   #   req(data.seq())
-   #   updateSelectInput(session = session, inputId = "timeseq", choices = input$timecol)
-   #       colsouspop<-colnames(data())[!(colnames(data()) %in% input$timecol)]
-   #       updateSelectInput(session = session, inputId = "souspop", choices = c("Aucune",colsouspop))
-   # })
-   # 
-   # observeEvent(input$souspop,{
-   #   req(input$souspop)
-   #   if (input$souspop=="Aucune"){
-   #     updateSelectInput(session = session, inputId = "souspop_modalite", choices = "" )
-   #   }
-   # })
-   # 
-   # output$slider<- renderUI({
-   #   if(input$souspop!="Aucune"){
-   #     if (is.numeric(data()[,input$souspop])){
-   #       min<-min(data()[,input$souspop],na.rm = TRUE)
-   #       max<-max(data()[,input$souspop],na.rm = TRUE)
-   #       sliderInput(inputId = "sous_pop_num", label="Slider",min=min,max=max,value = c(min,max))
-   #     }
-   #   }
-   # })
-   # output$modalite<- renderUI({
-   #   if(input$souspop!="Aucune"){
-   #     if (is.factor(data()[,input$souspop])){
-   #       selectInput(inputId = "souspop_modalite",label="Modalité", choices = levels(data()[,input$souspop]),selected="",multiple = TRUE)
-   #     }
-   #   }
-   # })
-   
-  data.select<-reactive({
-    req(input$souspop)
-    if (req(input$tabselected) == "1"){
-        if (input$souspop=="Aucune" || input$souspop==""){
-             data.select1<-data()
-            }else{
-              req(input$souspop_modalite)
-              if (is.factor(data()[,input$souspop])){
-                data.select1<-data()[(data()[,input$souspop] %in% c(input$souspop_modalite)),]
-              }
-              if (is.numeric(data()[,input$souspop]) | is.integer(data()[,input$souspop])){
-                
-                data.select1<-data()[which(data()[,input$souspop]<= max(input$sous_pop_num,na.rm=TRUE) & data()[,input$souspop]>= min(input$sous_pop_num,na.rm=TRUE)),]
-                
-              }
-             
-            }
-        return(data.select1)
-    }
-    
-    req(input$Bouton_Clustering)
-    
-    if (req(input$tabselected) == "2" | req(input$tabselected) == "3"){
-      if (input$souspop=="Aucune" || input$souspop==""){
-        data.select1<-dataCluster()
-      }else{
-        req(input$souspop_modalite)
-        if (is.factor(dataCluster()[,input$souspop])){
-          data.select1<-dataCluster()[(dataCluster()[,input$souspop] %in% c(input$souspop_modalite)),]
-        }
-        if (is.numeric(dataCluster()[,input$souspop]) | is.integer(dataCluster()[,input$souspop])){
-          
-          data.select1<-dataCluster()[which(dataCluster()[,input$souspop]<= max(input$sous_pop_num,na.rm=TRUE) & dataCluster()[,input$souspop]>= min(input$sous_pop_num,na.rm=TRUE)),]
-          
-        }
+   flux3<-eventReactive(eventExpr = input$graph2,{
+     
+          req(data.select2(),seq.select2(),col_periode2(),grp())
+
+          lapply(1:length(input$var_grp), FUN=function(i){
+            graph_flux_grp(data = data.select2(),seq_data = seq.select2(),col_periode2(),var_grp = "Clustering",label_grp = as.character(input$var_grp[i]))
+
+          })
         
-      }
-      return(data.select1)
-    }
-  })
-
-  seq.select<-reactive({
-    req(input$souspop)
-
-    if (input$souspop=="Aucune" || input$souspop==""){
-      seq.select1<-data.seq()
-    }else{
-      req(input$souspop_modalite)
-      if (is.factor(data()[,input$souspop])){
-        seq.select1<-data.seq()[(data()[,input$souspop] %in% c(input$souspop_modalite)),]
-      }
-      if (is.numeric(data()[,input$souspop]) | is.integer(data()[,input$souspop])){
-
-        seq.select1<-data.seq()[which(data()[,input$souspop]<= max(input$sous_pop_num,na.rm=TRUE) & data()[,input$souspop]>= min(input$sous_pop_num,na.rm=TRUE)),]
-
-      }
-    }
-
-    return(seq.select1)
-
-  })
-  
-  # seq.select<-reactive({
-  #   req(data.select(),input$timecol) 
-  #   seqdef(data.select()[,input$timecol],cpal = NULL)
-  #   })
-  # 
-   col_periode<-eventReactive(eventExpr = length(input$timeseq)>=2,{
-     input$timeseq
-   })
-   ############## Global###################
-  #  flux1<-eventReactive(eventExpr = input$graph1,{
-  #    req(data.select(),col_periode(),seq.select())
-  #    graph_flux(data=data.select(),seq_data=seq.select(),col_periode=col_periode())
-  #  }
-  # )
-  #  
-  #  output$flux_global<-renderPlot({
-  #    req(flux1())
-  #    flux1()
-  #  })
-  #  
-   # eventReactive(eventExpr = input$graph1,{
-   #   if (input$souspop=="Aucune" || input$souspop==""){
-   #     return("Vous avez sélectionné auncune sous population")
-   #   }else{
-   #     req(input$souspop_modalite)
-   #     if (is.factor(data()[,input$souspop])){
-   #       return(paste("Vous avez sélectionné la sous population",input$souspop, "avec les modalités",paste(input$souspop_modalite,collapse = ", ")))
-   #     }
-   #     if (is.numeric(data()[,input$souspop]) | is.integer(data()[,input$souspop])){
-   #       
-   #       return(paste("Vous avez sélectionné la sous population",input$souspop, "entre",min(input$sous_pop_num,na.rm=TRUE),"et",max(input$sous_pop_num,na.rm=TRUE)))
-   #       
-   #     }
-   #   }
-   #   
-   # })->text1
-   # renderUI({
-   #   req(text1())
-   #   renderText(text1())->output$textGlobal
-   #   h4(textOutput("textGlobal"))
-   # })->output$h2_fluxGlobal
+     })
    
-   ############### Ensemble ###############
-#    
-#    grp<-reactive({
-#      req(data.select(),input$Bouton_Clustering)
-#      if (req(input$tabselected) == "2" | req(input$tabselected) == "3" ){
-#       unique(data.select()[,"Clustering"])
-#      }
-#    })
-# 
-#    
-#    flux3<-eventReactive(eventExpr = input$graph3,{
-#      req(data.select(),seq.select(),col_periode(),grp())
-# 
-#      lapply(1:length(grp()), FUN=function(i){
-#        graph_flux_grp(data = data.select(),seq_data = seq.select(),col_periode(),var_grp = "Clustering",label_grp = as.character(grp()[i]))
-# 
-#      })
-# })
-      # ordre<-reactive({
-      #   req(grp())
-      #   return(taille_graph_flux(length(grp())))
-      # })
-      # haut<-function(){
-      #   ordre2<-ordre()
-      #   return(dim(ordre2)[1]*400)}
 
-   # output$flux_ens<-renderPlot({
-   #   req(ordre())
-   #   marrangeGrob(flux3(), layout_matrix=ordre())
-   # 
-   # }, width = 1300,height= haut)
-      
-# 
-#    eventReactive(eventExpr = input$graph3,{
-#      if (input$souspop=="Aucune" || input$souspop==""){
-#        return("Vous avez sélectionné auncune sous population")
-#      }else{
-#        req(input$graph3,input$souspop_modalite)
-#        if (is.factor(dataCluster()[,input$souspop])){
-#          return(paste("Vous avez sélectionné la sous population",input$souspop, "avec les modalités",paste(input$souspop_modalite,collapse = ", ")))
-#        }
-#        if (is.numeric(dataCluster()[,input$souspop]) | is.integer(dataCluster()[,input$souspop])){
-# 
-#          return(paste("Vous avez sélectionné la sous population",input$souspop, "entre",min(input$sous_pop_num,na.rm=TRUE),"et",max(input$sous_pop_num,na.rm=TRUE)))
-# 
-#        }
-#      }
-#      
-#               })->text3
-#    renderUI({
-#      req(text3())
-#      renderText(text3())->output$textEns
-#      h4(textOutput("textEns"))
-#      })->output$h2_fluxens
-   ################ 1 Groupe ###################
-   # observeEvent(eventExpr = grp(),{
-   #   updateSelectInput(session = session,inputId = "id_grp",choices = grp(),selected = input$id_grp )
-   # })
-   # 
-   # flux2<-eventReactive(eventExpr = input$graph2,{
-   #   req(data.select(),seq.select(),col_periode(),grp(),input$id_grp)
-   #   graph_flux_grp(data = data.select(),seq_data = seq.select(),col_periode(),var_grp = "Clustering",label_grp = input$id_grp)
-   #   
-   # }
-   # )
-   # 
-   # output$flux_1grp<-renderPlot({
-   #   req(flux2())
-   #   input$graph2
-   #   isolate(flux2())
-   # })
-   # 
-   # #####################
-   # eventReactive(eventExpr = input$graph2,{
-   #   p<-paste("Vous avez sélectionné le groupe",input$id_grp)
-   #   if (input$souspop=="Aucune" || input$souspop==""){
-   #     return(paste(p,"et auncune sous population"))
-   #   }else{
-   #     req(input$souspop_modalite)
-   #     if (is.factor(dataCluster()[,input$souspop])){
-   #       return(paste(p,"et la sous population",input$souspop, "avec les modalités",paste(input$souspop_modalite,collapse = ", ")))
-   #     }
-   #     if (is.numeric(dataCluster()[,input$souspop]) | is.integer(dataCluster()[,input$souspop])){
-   # 
-   #       return(paste(p,"et la sous population",input$souspop, "entre",min(input$sous_pop_num,na.rm=TRUE),"et",max(input$sous_pop_num,na.rm=TRUE)))
-   # 
-   #     }
-   #   }
-   # 
-   # })->text2
-   # renderUI({
-   #   req(text2())
-   #   renderText(text2())->output$textGRP
-   #   h4(textOutput("textGRP"))
-   # })->output$h2_fluxGRP
-   # 
-   }
+       
+     ###### Graphique coefficient de Pearson ######
+     
+     event.seq<-reactive({
+       if (req(input$plottypeG) == "Pearson"){
+          req(data.seq(),dataCluster())
+          return(seqecreate(seq.select2()[order(row.names(seq.select2())), ], tevent="state", use.labels=FALSE))
+       }
+     })
+     
+     subs<-reactive({
+       if (req(input$plottypeG) == "Pearson"){
+          req(event.seq())
+          return(seqefsub(event.seq(),pmin.support=input$pmin))
+       }   
+     })
+     
+     discr<-reactive({
+       if (req(input$plottypeG) == "Pearson"){
+         req(subs(),data.select2())
+         seqecmpgroup(subs() , group=data.select2()[,"Clustering"])
+       }
+     })
+     
+     
+     output$subsTableG<-renderUI({
+       if (req(input$plottypeG) == "Pearson"){
+         output$tableSubsG<-shiny::renderDataTable({
+           req(discr())
+           sousSeqDataG<-cbind(as.character(discr()$subseq),discr()$data)
+           names(sousSeqDataG)[1]<-("Sous-séquences")
+           return(sousSeqDataG[(1:6),])
+         })
+         return(shiny::dataTableOutput("tableSubsG")%>% withSpinner(color="#0dc5c1"))
+       }    
+     })
+     
+     #### Pour automatiser la taille des graphiques ####
 
+     ordre<-reactive({
+       if(input$plottypeG=="flux"){
+         input$graph2
+         isolate({
+           req(grp())     
+           return(taille_graph_flux(length(grp())))
+         })
+       }else ({
+         req(grp())     
+         return(taille_graph_flux(length(grp())))
+       })
+     })
+     
+     haut<-function(){
+       ordre2<-ordre()
+       return(dim(ordre2)[1]*400)}
+     
+     
+     output$PLOTG <- renderPlot({
+       if (req(input$plottypeG)=="flux"){
+         req(flux3(),ordre())
+         return(marrangeGrob(flux3(), layout_matrix=ordre()))
+       }
+       if(req(input$plottypeG) %in% c("d", "f", "I", "ms", "mt", "r")){
+         # req(data.seq(),input$plottypeG)
+         # return(seqplot(seqdata = data.seq(), type = input$plottypeG, group = dataCluster()[,"Clustering"]))
+         req(seq.select2(),input$plottypeG)
+         return(seqplot(seqdata = seq.select2(), type = input$plottypeG, group = data.select2()[,"Clustering"]))
+       }
+       if (req(input$plottypeG) == "Pearson"){
+         req(discr())
+         return(plot(discr()[1:6]))
+       }
+       
+     },width = 1300,height = haut)
+     
+     #### Texte rappelant la sous-population choisie ####
+     
+     reactive({
+       if (req(input$plottypeG)=="flux"){
+         input$graph2
+         isolate({
+           p<-paste("Vous avez sélectionné les groupes",paste(input$var_grp,collapse = ", "))
+           if (input$souspop2=="Aucune" || input$souspop2==""){
+             return(paste(p,"et auncune sous population"))
+           }else{
+             
+             if (is.factor(data()[,input$souspop2])){
+               req(input$souspop_modalite2)
+               return(paste(p,"et la sous population",input$souspop2, "avec les modalités",paste(input$souspop_modalite2,collapse = ", ")))
+             }
+             if (is.numeric(data()[,input$souspop2])){
+               
+               return(paste(p,"et la sous population",input$souspop2, "entre",min(input$sous_pop_num2,na.rm=TRUE),"et",max(input$sous_pop_num2,na.rm=TRUE)))
+               
+             }
+           }
+         })
+       }
+       
+       else {
+         if (input$souspop2=="Aucune" || input$souspop2==""){
+           return("Vous avez selectionné auncune sous population")
+         }else{
+           
+           if (is.factor(data()[,input$souspop2])){
+             req(input$souspop_modalite2)
+             return(paste("Vous avez selectionné la sous population",input$souspop2, "avec les modalités",paste(input$souspop_modalite2,collapse = ", ")))
+           }
+           if (is.numeric(data()[,input$souspop2])){
+             
+             return(paste("Vous avez selectionné la sous population",input$souspop2, "entre",min(input$sous_pop_num2,na.rm=TRUE),"et",max(input$sous_pop_num2,na.rm=TRUE)))
+             
+           }
+         }
+       }
+     })->text2
+     
+     
+     renderUI({
+       req(text2())
+       renderText(text2())->output$textGRP
+       h4(textOutput("textGRP"))
+     })->output$h4_fluxGrp
+     
+     
+     #### Graphique global pour pouvoir comparer plus facilement ####
+     
+     fluxGlobal<-eventReactive(eventExpr = input$graph2,{
+       req(data.select2(),col_periode2(),seq.select2())
+       graph_flux(data=data.select2(),seq_data=seq.select2(),col_periode=col_periode2())
+     }
+     )
+     
+     
+     output$GraphGlobal<-renderUI({
+       output$PlotGlobal<-renderPlot({
+         req(input$plottypeG)
+         if (req(input$plottypeG) == "flux"){
+           req(fluxGlobal())
+           return(fluxGlobal())
+         }
+         if(req(input$plottypeG) %in% c("d", "f", "I", "ms", "mt", "r")){
+           req(seq.select2())
+           return(seqplot(seqdata = seq.select2(), type = input$plottypeG))
+         }
+         
+       },width=650,height = 400)
+       if(req(input$plottypeG) %in% c("d", "f", "I", "ms", "mt", "r","flux")){
+         return(plotOutput("PlotGlobal"))
+       }
+     })
+     
+     
+     output$TitreGlobal<-renderUI({
+       if (req(input$plottypeG) %in% c("d", "f", "I", "ms", "mt", "r","flux")){
+         return(tags$h4("Graphique Global"))
+       }
+     })
+}
