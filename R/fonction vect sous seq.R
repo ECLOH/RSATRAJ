@@ -12,7 +12,7 @@ vect.sous.seq<-function(data){
   }
   vect.sous.seq<-NULL
   for (i in (1:nrow(data))){
-    if (data[i,3]==" "){
+    if (data[i,3]=="Aucun"){
       text<-paste("(",data[i,1],")-(",data[i,2],")",sep="")
       vect.sous.seq<-rbind(vect.sous.seq,text)
     } else {
@@ -25,4 +25,4 @@ vect.sous.seq<-function(data){
 
 
 #' @examples
- 
+
