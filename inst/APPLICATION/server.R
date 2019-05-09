@@ -115,7 +115,7 @@ server <- function(input, output, session) {
       })
   data.seq<-eventReactive(eventExpr = input$ValidParametres, {
   req(data())
-    if(DataType=="fichier"){
+    if(input$DataType=="fichier"){
 
   if (length(input$timecol)<2){
     showModal(modalDialog(
@@ -144,7 +144,7 @@ server <- function(input, output, session) {
     return(s)
   } 
     } else {
-      if(DataType=="objet"){
+      if(input$DataType=="objet"){
       }
     }
   })
@@ -411,7 +411,7 @@ observeEvent(eventExpr = data.seq(),{
         req(seq.select1())
        updateSelectInput(session = session,inputId = "par.sous.seq1",choices = alphabet(seq.select1()))
        updateSelectInput(session = session,inputId = "par.sous.seq2",choices = alphabet(seq.select1()))
-       updateSelectInput(session = session,inputId = "par.sous.seq3",choices = cbind(" ",alphabet(seq.select1())))
+       updateSelectInput(session = session,inputId = "par.sous.seq3",choices = cbind("Aucun",alphabet(seq.select1())))
        }
      })
    })
@@ -447,21 +447,31 @@ observeEvent(eventExpr = data.seq(),{
 
    
         #### Graphiques ####
-   output$PLOT3<-renderPlot({
+   
+   output$PLOT3<- renderUI({
      req(input$plottype,data.seq())
+     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
+       output$PLOT<-renderPlot({
+           req(subsGlobal())
+           return(graph_sous_sequences(subsGlobal()))
+           #return( plot(subsGlobal(),ylim=c(0,1),main = "Graphique des sous-séquences selon leur support") )
+       },height = 1000)
+     }
      if (req(input$plottype) == "flux"){
-       req(flux1())
-       return(flux1())
+       output$PLOT<-renderPlot({
+         req(flux1())
+         return(flux1())
+       })
      }
      if (req(input$plottype) %in% c("d", "f", "I", "ms", "mt", "r")) {
-       return(seqplot(seqdata = seq.select1(), type = input$plottype))
+       output$PLOT<-renderPlot({
+         return(seqplot(seqdata = seq.select1(), type = input$plottype))
+       })
      }
-     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
-       req(subsGlobal())
-       return( plot(subsGlobal(),ylim=c(0,1),main = "Graphique des sous-séquences selon leur support") )
-     }
-
+     
+     return(plotOutput("PLOT")%>% withSpinner(color="#0dc5c1"))
    })
+  
    
    ### Titre rappelant la selection choisie #####
         reactive({
@@ -867,19 +877,23 @@ observeEvent(eventExpr = data.seq(),{
        }
      })
      
-     
-     output$subsTableG<-renderUI({
-       if (req(input$plottypeG) == "Pearson"){
-         output$tableSubsG<-shiny::renderDataTable({
-           req(discr())
-           sousSeqDataG<-cbind(as.character(discr()$subseq),discr()$data)
-           names(sousSeqDataG)[1]<-("Sous-séquences")
-           return(sousSeqDataG[(1:6),])
-         })
-         return(shiny::dataTableOutput("tableSubsG")%>% withSpinner(color="#0dc5c1"))
-       }    
+     observe({
+       req(discr())
+       updateNumericInput(session = session,inputId = "nbAffiche",max=nrow(discr()$data))
      })
      
+     # output$subsTableG<-renderUI({
+     #   if (req(input$plottypeG) == "Pearson"){
+     #     output$tableSubsG<-shiny::renderDataTable({
+     #       req(discr())
+     #       sousSeqDataG<-cbind(as.character(discr()$subseq),discr()$data)
+     #       names(sousSeqDataG)[1]<-("Sous-séquences")
+     #       return(sousSeqDataG[(1:6),])
+     #     })
+     #     return(shiny::dataTableOutput("tableSubsG")%>% withSpinner(color="#0dc5c1"))
+     #   }    
+     # })
+     # 
      #### Pour automatiser la taille des graphiques ####
 
      ordre<-reactive({
@@ -913,7 +927,7 @@ observeEvent(eventExpr = data.seq(),{
        }
        if (req(input$plottypeG) == "Pearson"){
          req(discr())
-         return(plot(discr()[1:6]))
+         return(plot(discr()[1:input$nbAffiche]))
        }
        
      },width = 1300,height = haut)
