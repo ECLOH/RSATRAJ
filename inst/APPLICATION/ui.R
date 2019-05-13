@@ -218,7 +218,16 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              fluidRow(
                                                column(2,
                                                       shiny::selectInput(inputId = "plottypeG", label = "Quel graphique voulez-vous représenter? ", choices = c("d", "f", "I", "ms", "mt", "r","Graphique de flux"="flux","Sous-séquences discriminantes(Pearson)"="Pearson","Sous-séquences choisies (Pearson)"="Pearson.ch"), selected = "d", multiple = FALSE),
-
+                                                          conditionalPanel(condition="input.plottypeG=='Pearson.ch'",
+                                                                           wellPanel(shiny::selectInput(inputId = "par.sous.seq1G",label = "Etat 1",choices = "",multiple = FALSE),
+                                                                                     shiny::selectInput(inputId = "par.sous.seq2G",label = "Etat 2",choices = "",multiple = FALSE),
+                                                                                     shiny::selectInput(inputId = "par.sous.seq3G",label = "Etat 3",choices = "",multiple = FALSE),
+                                                                                     shiny::numericInput(inputId = "ligne.supprG", label = "Ligne à supprimer", min = 1, max = 100, value = 1),
+                                                                                     shiny::actionButton(inputId = "add.buttonG", label = "Ajouter", icon = icon("plus")),
+                                                                                     br(),br(),
+                                                                                     shiny::actionButton(inputId = "delete.buttonG", label = "Supprimer", icon = icon("minus"))
+                                                                           )
+                                                          ),
                                                           shiny::selectInput(inputId = "souspop2", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
                                                           shiny::uiOutput(outputId= "slider2"),
                                                           shiny::uiOutput(outputId= "modalite2"),
