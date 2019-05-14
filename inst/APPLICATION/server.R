@@ -357,27 +357,70 @@ observeEvent(eventExpr = data.seq(),{
    })
    
    #### Graphique sous séquence ####
-   event.seqGlobal<-reactive({
-     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
-       req(seq.select1())
-       return(seqecreate(seq.select1()[order(row.names(seq.select1())), ], tevent="state", use.labels=FALSE))
-     }
-  })
-   
+  #  event.seqGlobal<-reactive({
+  #    # if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
+  #    if (req(input$plottype) == "sous.seq.ch"){
+  #      req(seq.select1())
+  #      return(seqecreate(seq.select1()[order(row.names(seq.select1())), ], tevent="state", use.labels=FALSE))
+  #    }
+  # })
+  #  
    subsGlobal<-reactive({
-     if (req(input$plottype) == "sous.seq"){
-       req(event.seqGlobal())
-       return(seqefsub(event.seqGlobal(),pmin.support=input$pmin1))
-     }
      if (req(input$plottype) == "sous.seq.ch"){
-       req(event.seqGlobal(),values$df)
+       req(seq.select1(),values$df)
        if(nrow(values$df)>0){
-         
-         vectSeq<-vect.sous.seq(data = values$df)
-         seqefsub(event.seqGlobal(),str.subseq=vectSeq)->p
-         return(p[order(p$data$Support,decreasing = TRUE),])
+         vectSeq1<-vect.sous.seq(data = values$df)
+         seqefsub(seqecreate(seq.select1()[order(row.names(seq.select1())), ], tevent="state", use.labels=FALSE),str.subseq=vectSeq1)->p1
+         return(p1[order(p1$data$Support,decreasing = TRUE),])
        }
-         
+
+     }
+   })
+   
+   sousSeqPlot<-reactive({
+     req(seq.select1())
+     if (req(input$plottype) == "sous.seq"){
+       if (input$souspop1!="Aucune" && is.factor(data()[,input$souspop1])) {
+         req(input$souspop_modalite1)
+         lapply(1:length(input$souspop_modalite1), FUN=function(i){
+           seq.select1()[data.select1()[,input$souspop1]==input$souspop_modalite1[i],]->seqSouspop
+           seqecreate(seqSouspop[order(row.names(seqSouspop)), ], tevent="state", use.labels=FALSE)->seqGlobal
+           titre<-paste("Graphique des sous-séquneces \n pour la variable",input$souspop1,"\n avec la modalité",input$souspop_modalite1)
+           sousTitre<-paste("Il y a",nrow(seqSouspop),"individus")
+           seqefsub(seqGlobal,pmin.support=input$pmin1)->p
+           return(graph_sous_sequences(p)+ggtitle(titre,subtitle = sousTitre))
+         })
+       } else {
+           seqecreate(seq.select1()[order(row.names(seq.select1())), ], tevent="state", use.labels=FALSE)->seqGlobal
+           return(list(graph_sous_sequences(seqefsub(seqGlobal,pmin.support=input$pmin1))))
+         }
+     }else{
+         if (req(input$plottype) == "sous.seq.ch"){
+           req(values$df)
+           if(nrow(values$df)>0){
+               if (input$souspop1!="Aucune" && is.factor(data()[,input$souspop1])) {
+                 req(input$souspop_modalite1)
+                 lapply(1:length(input$souspop_modalite1), FUN=function(i){
+                   
+                     seq.select1()[data.select1()[,input$souspop1]==input$souspop_modalite1[i],]->seqSouspop
+                     seqecreate(seqSouspop[order(row.names(seqSouspop)), ], tevent="state", use.labels=FALSE)->seqGlobal
+                     vectSeq<-vect.sous.seq(data = values$df)
+                     seqefsub(seqGlobal,str.subseq=vectSeq)->p
+                     titre<-paste("Graphique des sous-séquneces \n pour la variable",input$souspop1,"\n avec la modalité",input$souspop_modalite1)
+                     sousTitre<-paste("Il y a",nrow(seqSouspop),"individus")
+                     return(graph_sous_sequences(p[order(p$data$Support,decreasing = TRUE),])+ggtitle(titre,subtitle = sousTitre))
+                   
+                 })
+               } else {
+                 
+                   seqecreate(seq.select1()[order(row.names(seq.select1())), ], tevent="state", use.labels=FALSE)->seqGlobal
+                   vectSeq<-vect.sous.seq(data = values$df)
+                   seqefsub(seqGlobal,str.subseq=vectSeq)->p
+                   return(list(graph_sous_sequences(p[order(p$data$Support,decreasing = TRUE),])))
+                 
+               }
+           }
+       }
      }
    })
    
@@ -467,7 +510,7 @@ observeEvent(eventExpr = data.seq(),{
          }
        })
      }
-       if(req(input$plottype) %in% c("d", "f", "I", "ms", "mt", "r")) {
+       if(req(input$plottype) %in% c("d", "f", "I", "ms", "mt", "r","sous.seq","sous.seq.ch")) {
          if (input$souspop1!="Aucune" && is.factor(data()[,input$souspop1])) {
            req(input$souspop_modalite1)     
            return(taille_graph_flux(length(input$souspop_modalite1)))
@@ -479,17 +522,29 @@ observeEvent(eventExpr = data.seq(),{
    
    haut1<-function(){
      ordre3<-ordre1()
-     return(dim(ordre3)[1]*400)}
+     if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")) {
+       return(dim(ordre3)[1]*1000)
+     }else{
+       return(dim(ordre3)[1]*400)
+     }
+    }
    
    output$PLOT3<- renderUI({
+     # if (req(input$plottype) =="sous.seq.ch"){
+     #   output$PLOT<-renderPlot({
+     #       req(subsGlobal())
+     #       return(graph_sous_sequences(subsGlobal()))
+     #       #return( plot(subsGlobal(),ylim=c(0,1),main = "Graphique des sous-séquences selon leur support") )
+     #   },height = function() {
+     #     session$clientData$output_PLOT_width
+     #   })
+     #   return(plotOutput("PLOT"))
+     # }
      if (req(input$plottype) %in% c("sous.seq","sous.seq.ch")){
        output$PLOT<-renderPlot({
-           req(subsGlobal())
-           return(graph_sous_sequences(subsGlobal()))
-           #return( plot(subsGlobal(),ylim=c(0,1),main = "Graphique des sous-séquences selon leur support") )
-       },height = function() {
-         session$clientData$output_PLOT_width
-       })
+         req(sousSeqPlot(),ordre1())
+         return(marrangeGrob(sousSeqPlot(), layout_matrix=ordre1()))
+       },width = 1300,height = haut1)
        return(plotOutput("PLOT"))
      }
      if (req(input$plottype) == "flux"){
