@@ -119,7 +119,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       uiOutput("txtAjoutSeq"),
                                                       uiOutput("h4_fluxGlobal"),
                                                       uiOutput("PLOT3")%>% withSpinner(color="#0dc5c1")
-                                                      
+                                               
                                                       #,uiOutput("subsTable")
                                                       
                                              
@@ -245,11 +245,10 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                ),
                                                column(10,align="center",
                                                       
-                                                      shiny::uiOutput("TitreGlobal"),
-                                                      shiny::uiOutput("GraphGlobal"),
+                                                      # shiny::uiOutput("TitreGlobal"),
+                                                      # shiny::uiOutput("GraphGlobal"),
                                                       shiny::uiOutput("h4_fluxGrp"),
-                                                      
-                                                      shiny::plotOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
+                                                      shiny::uiOutput("PLOTG")
                                                       #,shiny::uiOutput("subsTableG")
                                                       ))
                                              
