@@ -248,8 +248,8 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       # shiny::uiOutput("TitreGlobal"),
                                                       # shiny::uiOutput("GraphGlobal"),
                                                       shiny::uiOutput("h4_fluxGrp"),
-                                                      shiny::uiOutput("PLOTG")
-                                                      #,shiny::uiOutput("subsTableG")
+                                                      shiny::uiOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
+                                                      ##,shiny::uiOutput("subsTableG")
                                                       ))
                                              
     
