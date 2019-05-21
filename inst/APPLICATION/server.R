@@ -971,9 +971,23 @@ observeEvent(eventExpr = data.seq(),{
        if (req(input$plottypeG) == "Pearson.ch"){
          req(seq.select2(),dataCluster(),valuesG$df)
          if(nrow(valuesG$df)>0){
-           vectSeqG<-vect.sous.seq(data = valuesG$df)
-           seqefsub(seqecreate(seq.select2()[order(row.names(seq.select2())), ], tevent="state", use.labels=FALSE),str.subseq=vectSeqG)->p22
-           return(p22[order(p22$data$Support,decreasing = TRUE),])
+           unique(c(levels(valuesG$df[,1]),levels(valuesG$df[,2]),levels(valuesG$df[,3])))->valCh
+           valCh[valCh!="Aucun"]->valCh
+           seqecreate(seq.select2()[order(row.names(seq.select2())), ], tevent="state", use.labels=FALSE)->seqGlobal22
+           
+           if(all(valCh %in% alphabet(seqGlobal22))){
+             vectSeqG<-vect.sous.seq(data = valuesG$df)
+             seqefsub(seqGlobal22,str.subseq=vectSeqG)->p22
+             return(p22[order(p22$data$Support,decreasing = TRUE),])
+           }else{
+             valCh[!(valCh %in% alphabet(seqGlobal22))]->valnonalphabet
+             valuesG$df<-valuesG$df[which(!(valuesG$df[,1] %in% valnonalphabet | valuesG$df[,2] %in% valnonalphabet | valuesG$df[,3] %in% valnonalphabet)),]
+             if(nrow(valuesG$df)>0){
+               vectSeqG<-vect.sous.seq(data = valuesG$df)
+               seqefsub(seqGlobal22,str.subseq=vectSeqG)->p22
+               return(p22[order(p22$data$Support,decreasing = TRUE),])
+             }
+           }
          }
 
        }
@@ -982,11 +996,24 @@ observeEvent(eventExpr = data.seq(),{
      discr<-reactive({
        if (req(input$plottypeG) %in% c("Pearson","Pearson.ch")){
          req(subs(),data.select2())
+         if(nrow(valuesG$df)>0){
          seqecmpgroup(subs() , group=data.select2()[,"Clustering"])
+         } 
        }
      })
 
-   
+     output$alpabeltTexte<-renderUI({
+       output$TexteAlpha<-renderText({
+         if (req(input$plottypeG) == "Pearson.ch"){
+           req(seq.select2(),dataCluster(),valuesG$df)
+           seqecreate(seq.select2()[order(row.names(seq.select2())), ], tevent="state", use.labels=FALSE)->seqGlobalText
+           return(paste("Selectionnez des états se trouvant dans la liste suivante :",paste(alphabet(seqGlobalText),collapse = ", ")))
+         }
+       })
+       return(textOutput("TexteAlpha"))
+     })
+     
+     
   observe({
      req(seq.select2(),dataCluster(),ordre())
      if (req(input$plottypeG) == "Pearson"){
@@ -1027,6 +1054,8 @@ observeEvent(eventExpr = data.seq(),{
          req(valuesG$df)
          #condition d'un data.frame values non vide pour exécuter la suite du code afin de ne pas avoir d'erreur quand la data.frame est vide
          if(nrow(valuesG$df)>0){
+           unique(c(levels(valuesG$df[,1]),levels(valuesG$df[,2]),levels(valuesG$df[,3])))->valCh
+           valCh[valCh!="Aucun"]->valCh
            if (input$souspop2!="Aucune" && is.factor(data()[,input$souspop2])) {
              req(input$souspop_modalite2)
              tailleGraph$height<-dim(ordre())[1]*400
@@ -1037,12 +1066,22 @@ observeEvent(eventExpr = data.seq(),{
                    if (input$souspop2!="Aucune" && is.factor(data()[,input$souspop2])) {
                      seq.select2()[data.select2()[,input$souspop2]==input$souspop_modalite2[i],]->seqSouspop2
                      seqecreate(seqSouspop2[order(row.names(seqSouspop2)), ], tevent="state", use.labels=FALSE)->seqGlobal2
-                     vectSeq2<-vect.sous.seq(data = valuesG$df)
-                     seqefsub(seqGlobal2,str.subseq=vectSeq2)->p2
-                     # titre<-paste("Graphique des sous-séquneces \n pour la variable",input$souspop1,"\n avec la modalité",input$souspop_modalite1)
-                     # sousTitre<-paste("Il y a",nrow(seqSouspop),"individus")
-                     #return(graph_sous_sequences(p[order(p$data$Support,decreasing = TRUE),])+ggtitle(titre,subtitle = sousTitre))
-                     return(plot(seqecmpgroup(p2[order(p2$data$Support,decreasing = TRUE),] , group=data.select2()[data.select2()[,input$souspop2]==input$souspop_modalite2[i],"Clustering"])))
+                     if(all(valCh %in% alphabet(seqGlobal2))){
+                       if(nrow(valuesG$df)>0){
+                         vectSeq2<-vect.sous.seq(data = valuesG$df)
+                         seqefsub(seqGlobal2,str.subseq=vectSeq2)->p2
+                         return(plot(seqecmpgroup(p2[order(p2$data$Support,decreasing = TRUE),] , group=data.select2()[data.select2()[,input$souspop2]==input$souspop_modalite2[i],"Clustering"])))
+                        }
+                       
+                     }else{
+                       valCh[!(valCh %in% alphabet(seqGlobal2))]->valnonalphabet
+                       valuesG$df<-valuesG$df[which(!(valuesG$df[,1] %in% valnonalphabet | valuesG$df[,2] %in% valnonalphabet | valuesG$df[,3] %in% valnonalphabet)),]
+                       if(nrow(valuesG$df)>0){
+                         vectSeq2<-vect.sous.seq(data = valuesG$df)
+                         seqefsub(seqGlobal2,str.subseq=vectSeq2)->p2
+                         return(plot(seqecmpgroup(p2[order(p2$data$Support,decreasing = TRUE),] , group=data.select2()[data.select2()[,input$souspop2]==input$souspop_modalite2[i],"Clustering"])))
+                       }
+                     }
                    }
                  } 
                 },height = haut,width = 1300)
@@ -1051,11 +1090,13 @@ observeEvent(eventExpr = data.seq(),{
              output$SEQPLOTPEARSONCH<-renderPlot({
                if (req(input$plottypeG) == "Pearson.ch"){
                  if (input$souspop2=="Aucune" || is.numeric(data()[,input$souspop2])) {
-                   seqecreate(seq.select2()[order(row.names(seq.select2())), ], tevent="state", use.labels=FALSE)->seqGlobal2
-                   vectSeq2<-vect.sous.seq(data = valuesG$df)
-                   seqefsub(seqGlobal2,str.subseq=vectSeq2)->p2
-                   return(plot(seqecmpgroup(p2[order(p2$data$Support,decreasing = TRUE),] , group=data.select2()[,"Clustering"])))
-                 }
+                   if(nrow(valuesG$df)>0){
+                     seqecreate(seq.select2()[order(row.names(seq.select2())), ], tevent="state", use.labels=FALSE)->seqGlobal2
+                     vectSeq2<-vect.sous.seq(data = valuesG$df)
+                     seqefsub(seqGlobal2,str.subseq=vectSeq2)->p2
+                     return(plot(seqecmpgroup(p2[order(p2$data$Support,decreasing = TRUE),] , group=data.select2()[,"Clustering"])))
+                   }
+                 }   
                }
             },height = haut,width = 1300)
            }
@@ -1067,8 +1108,12 @@ observeEvent(eventExpr = data.seq(),{
    
    
      observe({
-       req(discr())
-       updateNumericInput(session = session,inputId = "nbAffiche",max=nrow(discr()$data))
+       if(nrow(valuesG$df)>0){
+          req(discr())
+          updateNumericInput(session = session,inputId = "nbAffiche",max=nrow(discr()$data))
+       }else{
+         updateNumericInput(session = session,inputId = "nbAffiche",max=1)
+       }
      })
      
      
@@ -1134,7 +1179,7 @@ observeEvent(eventExpr = data.seq(),{
        ordre2<-ordre()
        return(dim(ordre2)[1]*400)}
      
-     tailleGraph<-reactiveValues(height=400)
+     tailleGraph<-reactiveValues(height=800)
      
      output$PLOTG <- renderUI({
        
