@@ -239,7 +239,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                                        shiny::actionButton(inputId = "graph2", label = "Afficher les graphiques")
                                                       ),
                                                       conditionalPanel(condition="input.plottypeG=='Pearson'",
-                                                        shiny::sliderInput(inputId = "pmin",label = "Support minimal (en pourcentage)",min=0,max=1,value=0.15,step = 0.01),
+                                                        shiny::sliderInput(inputId = "pmin",label = "Support minimal",min=0,max=1,value=0.15,step = 0.01),
                                                         shiny::numericInput(inputId = "nbAffiche",label = "Nombre d'états affichés",min=1,max=1,value=1,step=1))
                                                       
                                                ),
@@ -248,6 +248,7 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                                       # shiny::uiOutput("TitreGlobal"),
                                                       # shiny::uiOutput("GraphGlobal"),
                                                       shiny::uiOutput("h4_fluxGrp"),
+                                                      shiny::uiOutput("alpabeltTexte"),
                                                       shiny::uiOutput("PLOTG")%>% withSpinner(color="#0dc5c1")
                                                       ##,shiny::uiOutput("subsTableG")
                                                       ))
