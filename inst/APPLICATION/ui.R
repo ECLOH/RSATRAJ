@@ -255,9 +255,20 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                              
     
                                         ),
-                                    tabPanel(title="Statistiques descriptives")
-                                    
-
+                                    tabPanel(title="Statistiques descriptives",
+                                             fluidRow(
+                                               column(2,
+                                                      shiny::selectInput(inputId = "souspop2StatDesc", label = "Sous Population", choices = "", selected = "", multiple = FALSE),
+                                                      uiOutput("slider2StatDesc"),
+                                                      uiOutput("modalite2StatDesc"),
+                                                      shiny::selectInput(inputId = "GrpStatDesc", label = "Groupe", choices = "", selected = "", multiple = FALSE)
+                                                      ),
+                                               column(10,
+                                                      shiny::uiOutput("profilLigne")%>% withSpinner(color="#0dc5c1")
+                                                     )
+                                             )
+                                             
+                                             )
 
                                   ) 
                          )
