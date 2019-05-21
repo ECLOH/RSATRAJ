@@ -767,38 +767,56 @@ observeEvent(eventExpr = data.seq(),{
 
    ### Création d'une variable "Clustering" donnant la classification choisie ###
    output$classif_grp<-renderUI({
-     req(SEQCLASS(),input$SliderGrp)
+     req(SEQCLASS())
      input$calculCLUST
      input$SliderGrp
      isolate({
        if (input$cluster_type=="CAHPAM"){
+         req(input$SliderGrp)
          return(tagList(
-           
            column(4,
                   shiny::numericInput(inputId = "nb_cluster",label="Nombre de groupes choisi",step=1,value = min(input$SliderGrp,na.rm=TRUE)+1,min=min(input$SliderGrp,na.rm=TRUE),max=max(input$SliderGrp,na.rm=TRUE))
            ),
            column(2,
                   shiny::actionButton(inputId = "Bouton_Clustering",label = "Faire les groupes")
            )
-           
          ))
          
+       }
+       if(input$cluster_type=="CAH"){
+         return(tagList(
+           column(4,
+                  shiny::numericInput(inputId = "nb_cluster",label="Nombre de groupes choisi",step=1,value = 2,min=2 ,max=10)
+           ),
+           column(2,
+                  shiny::actionButton(inputId = "Bouton_Clustering",label = "Faire les groupes")
+           )
+         ))
        }
      })
    })
    
    
    dataCluster<-eventReactive(eventExpr = input$Bouton_Clustering,{
-     indicateur<-Creation_indicateur(nb_cluster_min=min(input$SliderGrp,na.rm=TRUE),nb_cluster_max=max(input$SliderGrp,na.rm=TRUE),mat_dist=SEQDIST(),intialclust=SEQCLASS())
-     return(data_cluster(indicateur,data(),input$nb_cluster))
+     req(SEQCLASS())
+     if (input$cluster_type=="CAHPAM"){
+       indicateur<-Creation_indicateur(nb_cluster_min=min(input$SliderGrp,na.rm=TRUE),nb_cluster_max=max(input$SliderGrp,na.rm=TRUE),mat_dist=SEQDIST(),intialclust=SEQCLASS())
+       return(data_cluster(indicateur,data(),input$nb_cluster))
+     }
+     if(input$cluster_type=="CAH"){
+       data()->dataCopieCAH
+       clusterCAH<-as.factor(cutree(SEQCLASS(),k = input$nb_cluster))
+       dataCopieCAH[,"Clustering"]<-factor(clusterCAH,labels = paste0("G",1:input$nb_cluster))
+       
+       return(dataCopieCAH)
+     }
    })
    
    output$textCluster<-renderText({
-     req(dataCluster())
-     
      input$Bouton_Clustering
      isolate({
-       return(paste("Vous avez créé",input$nb_cluster,"groupes"))
+       req(dataCluster())
+       return(paste("Vous avez créé",length(levels(dataCluster()[,"Clustering"])),"groupes"))
      })
      
    })
@@ -837,28 +855,7 @@ observeEvent(eventExpr = data.seq(),{
        }
      }
    })
-   
-  ### Proposition des groupes à représenter ### 
-    
-   grp<-reactive({
-     #if (input$plottypeG=="flux"){
-       input$souspop_modalite2
-       input$souspop2
-       input$sous_pop_num2
-       isolate({
-         req(data.select2())
-         unique(data.select2()[,"Clustering"])
-       })
-     # }else{
-     #   req(dataCluster())
-     #   unique(dataCluster()[,"Clustering"])
-     # }
-   })
 
-   observe({
-     req(grp())
-     updateSelectInput(session = session, inputId = "var_grp", choices = grp())
-   })
    
       #### Selection de la sous population ####
    data.select2<-reactive({
@@ -869,7 +866,7 @@ observeEvent(eventExpr = data.seq(),{
          
          if (is.factor(dataCluster()[,input$souspop2])){
            req(input$souspop_modalite2)
-           data.selectG<-dataCluster()[(dataCluster()[,input$souspop2] %in% c(input$souspop_modalite2)),]
+           data.selectG<-dataCluster()[which(dataCluster()[,input$souspop2] %in% c(input$souspop_modalite2)),]
          }
          if (is.numeric(dataCluster()[,input$souspop2])){
            req(input$sous_pop_num2)
@@ -890,7 +887,7 @@ observeEvent(eventExpr = data.seq(),{
        
        if (is.factor(data()[,input$souspop2])){
          req(input$souspop_modalite2)
-         seq.selectG<-data.seq()[(data()[,input$souspop2] %in% c(input$souspop_modalite2)),]
+         seq.selectG<-data.seq()[which(data()[,input$souspop2] %in% c(input$souspop_modalite2)),]
        }
        if (is.numeric(data()[,input$souspop2])){
          req(input$sous_pop_num2)
@@ -901,6 +898,29 @@ observeEvent(eventExpr = data.seq(),{
      
      return(seq.selectG)
      
+   })
+   
+   
+   ### Proposition des groupes à représenter ### 
+   
+   grp<-reactive({
+     #if (input$plottypeG=="flux"){
+     input$souspop_modalite2
+     input$souspop2
+     input$sous_pop_num2
+     isolate({
+       req(data.select2())
+       unique(data.select2()[,"Clustering"])
+     })
+     # }else{
+     #   req(dataCluster())
+     #   unique(dataCluster()[,"Clustering"])
+     # }
+   })
+   
+   observe({
+     req(grp())
+     updateSelectInput(session = session, inputId = "var_grp", choices = grp())
    })
    
    ### Selectionne de la période temporelle ###
@@ -1344,6 +1364,68 @@ observeEvent(eventExpr = data.seq(),{
        renderText(text2())->output$textGRP
        h4(textOutput("textGRP"))
      })->output$h4_fluxGrp
+     
+     #### Statistiques descriptives Groupes ####
+
+     ##### Mise a jour des inputs #####
+     observeEvent(eventExpr = input$Bouton_Clustering,{
+       #sous population
+       colsouspop2<-colnames(data())[!(colnames(data()) %in% input$timecol)]
+       updateSelectInput(session = session, inputId = "souspop2StatDesc", choices = c("Aucune",colsouspop2))
+       
+     })
+     
+     observe({
+       req(grp())
+       updateSelectInput(session = session, inputId = "GrpStatDesc", choices = grp())
+     })
+     
+     # observeEvent(input$souspop2,{
+     #   req(input$souspop2StatDesc)
+     #   if (input$souspop2StatDesc=="Aucune"){
+     #     updateSelectInput(session = session, inputId = "souspop_modalite2StatDesc", choices = "" )
+     #   }
+     # })
+     # 
+     # output$slider2StatDesc<- renderUI({
+     #   if(input$souspop2StatDesc!="Aucune"){
+     #     if (is.numeric(data()[,input$souspop2StatDesc])){
+     #       min<-min(data()[,input$souspop2StatDesc],na.rm = TRUE)
+     #       max<-max(data()[,input$souspop2StatDesc],na.rm = TRUE)
+     #       sliderInput(inputId = "sous_pop_num2StatDesc", label="Slider",min=min,max=max,value = c(min,max))
+     #     }
+     #   }
+     # })
+     # output$modalite2StatDesc<- renderUI({
+     #   if(input$souspop2StatDesc!="Aucune"){
+     #     if (is.factor(data()[,input$souspop2StatDesc])){
+     #       selectInput(inputId = "souspop_modalite2StatDesc",label="Modalité", choices = levels(data()[,input$souspop2StatDesc]),selected="",multiple = TRUE)
+     #     }
+     #   }
+     # })
+     
+     ### Tableau des profils lignes ###
+     output$profilLigne<-renderUI({
+        req(dataCluster())
+       if (input$souspop2StatDesc!="Aucune" && is.factor(data()[,input$souspop2StatDesc])){
+         output$tableauProfilLigne <- renderFormattable({
+           if (input$souspop2StatDesc!="Aucune" && is.factor(data()[,input$souspop2StatDesc])){
+            tableau_ligne(data = dataCluster(),var_grp = "Clustering",var = input$souspop2StatDesc)
+           }
+          })
+         return(tagList(tags$h4("Profil ligne"),formattableOutput("tableauProfilLigne")))
+       }
+       if (input$souspop2StatDesc=="Aucune"){
+         output$tableEff<-renderTable({
+           if (input$souspop2StatDesc=="Aucune"){
+            cbind(summary(dataCluster()[,"Clustering"]),round((summary(dataCluster()[,"Clustering"])/nrow(dataCluster()))*100,2))->tableEffectif
+            colnames(tableEffectif)<-c("Effectif","Proportion")
+            return(tableEffectif)
+           }
+         },rownames = TRUE)
+         return(tagList(tags$h4("Effectif pour chaque groupe"),tableOutput("tableEff")))
+       }
+     })
      
      
      # #### Graphique global pour pouvoir comparer plus facilement ####
