@@ -36,14 +36,15 @@ tableau_ligne<-function(data,var_grp,var){
   # On colorie les valeurs supérieur à la valeur dans l'ensmeble du jeu de données
   # On multiplie par le nombre de modalités etudiées
   SupGlobalTableau <- rep(list(formatter("span", 
-                                         style = x ~ style(color = ifelse(x > x[NumGlobal], "seagreen", "black")))),dim(tableau)[2])
+                                         style = x ~ style(color = ifelse(x > x[NumGlobal], "seagreen", "black"),"font-weight" = ifelse(x > x[NumGlobal], "bold", NA)))),dim(tableau)[2])
   
   #On affecte le nom des modalités étudiées pour automatiser la fonction formattable
   names(SupGlobalTableau)<-colnames(tabDf)
   
-  tab<-formattable(tabDf, SupGlobalTableau)
+  tab<-formattable(tabDf, SupGlobalTableau)%>%as.datatable()  #permet de convertir et d'utiliser un renderDataTable dans shiny
   return(tab)
 }
 
 #' @examples
+
 
