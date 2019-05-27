@@ -1375,10 +1375,10 @@ observeEvent(eventExpr = data.seq(),{
        
      })
      
-     observe({
-       req(grp())
-       updateSelectInput(session = session, inputId = "GrpStatDesc", choices = grp())
-     })
+     # observe({
+     #   req(grp())
+     #   updateSelectInput(session = session, inputId = "GrpStatDesc", choices = grp())
+     # })
      
      # observeEvent(input$souspop2,{
      #   req(input$souspop2StatDesc)
@@ -1405,25 +1405,61 @@ observeEvent(eventExpr = data.seq(),{
      # })
      
      ### Tableau des profils lignes ###
+     
+     output$outils<-renderUI({
+         if (input$souspop2StatDesc=="Aucune"){
+           shiny::radioButtons(inputId = "TypeGraph", label = "Graphique",choices=c("Effectif","Pourcentage"))
+         }
+     })
+     
+     # Tableau des effectifs et proportions dans chaque groupe
+     tableEffectifR<-reactive({
+       if (input$souspop2StatDesc=="Aucune"){
+         cbind(summary(dataCluster()[,"Clustering"]),round((summary(dataCluster()[,"Clustering"])/nrow(dataCluster()))*100,2))->tableEffectif
+         colnames(tableEffectif)<-c("Effectif","Proportion")
+         apply(tableEffectif,2,sum)->totGlobal #Rajout de la ligne Global
+         rbind(tableEffectif,totGlobal)->tableEffectif
+         rownames(tableEffectif)[dim(tableEffectif)[1]]<-"Global"
+         as.integer(tableEffectif[,1])->tableEffectif[,1] # Pour enlever les décimales dans la colonne effectif
+         return(tableEffectif)
+       }
+     })
+     
      output$profilLigne<-renderUI({
         req(dataCluster())
        if (input$souspop2StatDesc!="Aucune" && is.factor(data()[,input$souspop2StatDesc])){
-         output$tableauProfilLigne <- renderFormattable({
+         output$tableauProfilLigne <- renderDataTable({
            if (input$souspop2StatDesc!="Aucune" && is.factor(data()[,input$souspop2StatDesc])){
             tableau_ligne(data = dataCluster(),var_grp = "Clustering",var = input$souspop2StatDesc)
            }
           })
-         return(tagList(tags$h4("Profil ligne"),formattableOutput("tableauProfilLigne")))
+         output$graphStatDescGrpF<-renderPlot({
+           if (input$souspop2StatDesc!="Aucune" && is.factor(data()[,input$souspop2StatDesc])){
+             table(dataCluster()[,"Clustering"],dataCluster()[,input$souspop2StatDesc])->dataplot
+             return(barplot(dataplot,beside=T,legend=rownames(dataplot),main="Effectif par groupe et par modalité"))
+           }
+         })
+         return(tagList(tags$h4("Profil ligne"),dataTableOutput("tableauProfilLigne"),plotOutput("graphStatDescGrpF")))
        }
        if (input$souspop2StatDesc=="Aucune"){
-         output$tableEff<-renderTable({
+         output$tableEff<-renderDataTable({
            if (input$souspop2StatDesc=="Aucune"){
-            cbind(summary(dataCluster()[,"Clustering"]),round((summary(dataCluster()[,"Clustering"])/nrow(dataCluster()))*100,2))->tableEffectif
-            colnames(tableEffectif)<-c("Effectif","Proportion")
-            return(tableEffectif)
+             req(tableEffectifR())
+             tableEffectifR()
            }
          },rownames = TRUE)
-         return(tagList(tags$h4("Effectif pour chaque groupe"),tableOutput("tableEff")))
+         output$GraphEffectiGrp<-renderPlot({
+           if (input$souspop2StatDesc=="Aucune"){
+             req(tableEffectifR())
+             if (input$TypeGraph=="Effectif"){
+               return(barplot(tableEffectifR()[1:(dim(tableEffectifR())[1]-1),1],main = "Répartition des effectifs par groupe"))
+             }
+             if (input$TypeGraph=="Pourcentage"){
+               return(barplot(tableEffectifR()[1:(dim(tableEffectifR())[1]-1),2],main = "Répartition en pourcentage des effectifs par groupe"))
+             }
+           }
+         })
+         return(tagList(tags$h4("Effectif pour chaque groupe"),dataTableOutput("tableEff"),plotOutput("GraphEffectiGrp")))
        }
      })
      
