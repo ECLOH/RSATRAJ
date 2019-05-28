@@ -69,6 +69,6 @@ APPLY_READCSV_DOSSIER<-function(emplacement.dossier="C:/Users/elie/Desktop/DOSSI
   })
   gsub(pattern = paste(emplacement.dossier, "/", sep=""), replacement = "", x = vec.csv.files)->vecnames
   unlist(lapply(donnees.mois, function(x){unique(as.character(x$DATE))}))->vecnames
-  names(donnees.mois)<-vecnames
+  names(donnees.mois)<-paste("D", gsub(pattern = "-", replacement = "_", x = vecnames), sep="")
   return(donnees.mois)
 }
