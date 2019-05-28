@@ -18,6 +18,7 @@ library(dplyr)
 library(shinyWidgets)
 library(formattable)
 library(WeightedCluster)
+library(shinytools)
 options(shiny.maxRequestSize=700*1024^2) 
 #### UI ####
 
@@ -59,11 +60,34 @@ ui <- shinyUI(navbarPage('RSATRAJ', id="page", collapsible=TRUE, inverse=FALSE,t
                                   sidebarPanel(
                                     h3("Paramétrage des trajectoires"),
                                     width = 6,
-                                  shiny::selectInput(inputId = "timecol", label = "Variables temporelles", choices = "", selected = "PrestationRSA.SituationDossierRSA.EtatDossierRSA.ETATDOSRSA", multiple = TRUE, selectize = TRUE),
+                                  shiny::selectInput(inputId = "timecol", 
+                                                     label = "Variables temporelles", 
+                                                     choices = "", 
+                                                     selected = "", 
+                                                     multiple = TRUE, selectize = TRUE),
                                   shiny::uiOutput("DATA_UI"),
+                                  shiny::selectInput(inputId = "IDvar", 
+                                                     label = "Variable d'identifiant individuel", 
+                                                     choices = "", 
+                                                     selected = "", 
+                                                     multiple = FALSE, selectize = TRUE),
                                   shiny::selectInput(inputId = "mode", label = "Mode de travail:", 
-                                                     choices = c("Flux d'entrants", "Flux en continu"), 
-                                                     selected = c("Flux en continu"), multiple = FALSE),
+                                                     choices = c("données de flux", "données de stock"), 
+                                                     selected = c("données de stock"), multiple = FALSE),
+                                  conditionalPanel(
+                                    condition = "input.mode == 'données de stock'",
+                                    h4("Sélection des individus :"),
+                                    uiOutput("UI_DATE_SELECT"), 
+                                    uiOutput("UI_VAR_SELECT"), 
+                                    uiOutput("UI_MOD_SELECT"),
+                                    actionButton(inputId="addROW", label = "Ajouter la condition"),
+                                    #uiOutput("UI_SELECT_DF_TO_SUBSET"),
+                                    #filterDataUI(id = "ex"),
+                                    #actionButton(inputId="FILTER", label = "Appliquer les filtres"),
+                                    hr(),
+                                    DT::DTOutput("TABLE_POUR_SELECTION")
+
+                                  ),
                                   shiny::numericInput(inputId = "criterNb", label = "Critère de sortie : nombre de mois consécutifs",value = 3, min = 1, max = 36, step = 1),
                                   shiny::actionButton(inputId = "ValidParametres", label = "Je valide ces paramètres")
                                   

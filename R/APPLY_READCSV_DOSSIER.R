@@ -37,9 +37,9 @@ APPLY_READCSV_DOSSIER<-function(emplacement.dossier="C:/Users/elie/Desktop/DOSSI
      b<-as.Date(a,format="%d/%m/%Y")
      data.i$DATE<-b
      #### AJOUT DE RSA ###
+     as.character(data.i$PrestationRSA.SituationDossierRSA.EtatDossierRSA.ETATDOSRSA)->varRSA
      message("RSA_simple...")
      sapply(1:nrow(data.i), FUN = function(i){
-       as.character(data.i$PrestationRSA.SituationDossierRSA.EtatDossierRSA.ETATDOSRSA)->varRSA
        if(is.na(varRSA[i])){
          NA
        } else {
@@ -51,15 +51,19 @@ APPLY_READCSV_DOSSIER<-function(emplacement.dossier="C:/Users/elie/Desktop/DOSSI
          } else {
            if(varRSA[i]=="2"){
              "RSA"
-           }
+           } else {NA}
          }
        }
        }
      })->data.i$RSA_simple
      message("ETATDOSRSA_TEXT...")
      sapply(1:nrow(data.i), FUN = function(i){
-       as.character(data.i$PrestationRSA.SituationDossierRSA.EtatDossierRSA.ETATDOSRSA)->varRSA
-     as.character(subset(df.RSA.value, df.RSA.value$MODALITE==varRSA[i])$TEXT)
+       as.character(subset(df.RSA.value, df.RSA.value$MODALITE==varRSA[i])$TEXT)->TEXT 
+       if(length(TEXT)<1){return(NA)} else {
+       if(is.null(TEXT)){return(NA)} else {
+       if(is.na(TEXT)){return(NA)} else {
+         return(TEXT)
+       }}}
      })->data.i$ETATDOSRSA_TEXT
      data.i
   })

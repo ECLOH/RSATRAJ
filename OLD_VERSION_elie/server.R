@@ -50,7 +50,10 @@ server <- function(input, output, session) {
         #
         mycolumns<-unique(unlist(Reduce(intersect,list(lapply(X = data, FUN = names))), 
                                  use.names = FALSE))
-        updateSelectInput(session = session, inputId = "timecol", choices = mycolumns)
+        updateSelectInput(session = session, inputId = "timecol", 
+                          choices = mycolumns, selected = "PrestationRSA.SituationDossierRSA.EtatDossierRSA.ETATDOSRSA")
+        updateSelectInput(session = session, inputId = "IDvar", 
+                          choices = mycolumns, selected = "Code")
         #
         return(data)
       }
@@ -104,19 +107,217 @@ server <- function(input, output, session) {
     } else {
       if(input$DataType=="objet"){
         names(list_csv())->names.pick
-        list(
-          shiny::selectInput(inputId = "PICKDATE1", label = "Debut:",
-                           choices = names.pick, multiple = FALSE),
-          shiny::selectInput(inputId = "PICKDATE1", label = "Fin:",
-                             choices = names.pick, multiple = FALSE))->the.ui
+        fluidRow(column(6, shiny::selectInput(inputId = "PICKDATE1", label = "Debut:",
+                           choices = names.pick, multiple = FALSE)),
+                 column(6, shiny::selectInput(inputId = "PICKDATE1", label = "Fin:",
+                             choices = names.pick, multiple = FALSE))
+                 )->the.ui
       } else {h3("error")->the.ui}
     }
     the.ui
       })
+  
+  ###### DATA for traj (à partir de la liste) ####
+  #### SELECTION D'UN STOCK DE BENEFICIAIRES
+  #   lapply(mycolumns, function(nami){
+  #     print(nami)
+  #     unique(as.character(unlist(lapply(csv.list, function(listi){
+  #       if(!nami%in%names(listi)){ 
+  #         } else {
+  #           if(class(listi[ , nami])%in%c("numeric", "integer")){
+  #             shiny::sliderInput(inputId = "NumSelect", label = "Valeurs sélectionnées", 
+  #                                min = min(listi[ , nami], 
+  #                                          na.rm = TRUE), max = max(listi[ , nami], 
+  #                                                                   na.rm = TRUE), 
+  #                                value = c(min(listi[ , nami], 
+  #                                              na.rm = TRUE), max(listi[ , nami], 
+  #                                                                       na.rm = TRUE))) 
+  #           } else {
+  #             if(class(listi[ , nami])%in%c("factor", "character")){
+  #               if(length(unique(listi[ , nami]))<50){
+  #                 shiny::selectInput(inputId = "FactSelect", label="Valeurs sélectionnées", 
+  #                                    choices =  unique(listi[ , nami]), multiple = TRUE)
+  #               } else {"Trop de modalités"}
+  #             }
+  #       }
+  #     }))))->SELECT_INPUT
+  #     #vec<-vec[!is.na(vec)]
+  #     #vec<-paste(vec, collapse = " ,\n")
+  #     SELECT_INPUT#vec
+  #   })->vecmod
+  #   names(vecmod)<-mycolumns
+  #   vecmod
+  # })
+  # output$INPUTS_POUR_ADD_ROW<-renderUI({
+  #   req(list_names_mod())
+  #   fluidRow(column(6, shiny::selectInput(inputId = "ADD_ROW_VAR", label = "Variable:", 
+  #                  choices = names(list_names_mod()), selected = "")),
+  #            column(6, shiny::selectInput(inputId = "ADD_ROW_MOD", label = "Choix des modalités :", 
+  #                      choices = "", multiple = TRUE))
+  #   )
+  # })
+  
+  # output$UI_SELECT_DF_TO_SUBSET<-renderUI({
+  # names(list_csv())->names.pick
+  # shiny::selectInput(inputId = "SELECT_DF_TO_SUBSET", label = "Date pour la sélection : ", 
+  #                    choices = names.pick, multiple = FALSE, width = '50%')
+  # })
+  # df_FOR_SUBSET<-reactive({
+  #   list_csv()[[input$SELECT_DF_TO_SUBSET]]
+  # })
+  # xi <- reactive({
+  #   req(df_FOR_SUBSET() )
+  #   nbLevelMax <- 15
+  #   df_FOR_SUBSET()[,names(which(sapply(df_FOR_SUBSET(), nlevels) < nbLevelMax))]
+  #   #df_FOR_SUBSET()
+  # })
+  # observe({
+  #   req(xi())
+  #   res <- callModule(module = filterDataServer, id = "ex", x = xi, return_data = FALSE)
+  #   
+  # })
+  # data_filtered <- eventReactive(input$FILTER, {
+  #   # Using lazyeval
+  #   #filters1 <- lazyeval::lazy_eval(res$expr, data = x())
+  #   
+  #   # Using base R (my favorite one)
+  # filters2 <- eval(expr = res$expr, envir = x())
+  #   
+  #   # Using rlang
+  #   #filters3 <- rlang::eval_tidy(res$expr, data = x())
+  #   
+  #   #stopifnot(identical(filters1, filters2))
+  #   #stopifnot(identical(filters1, filters3))
+  #   
+  #   # get data filtered
+  #  x()[filters2,]
+  # })
+  
+  ###observe({
+  ### req(input$ADD_ROW_VAR)
+  ###  list_names_mod()[[input$ADD_ROW_VAR]]->select.var.mod
+  ###  shiny::updateSelectInput(session = session, inputId = "ADD_ROW_MOD", 
+  ###        choices = select.var.mod, selected = "")
+  ###  
+  ###})
+  
+  ###### AJOUT CONDITION => ADD ROW #####
+  output$TABLE_POUR_SELECTION<-DT::renderDataTable(
+  data.frame("DATE"="", "VARIABLE"="", "TYPE"="", "CHOIX"=""),
+  server = FALSE,
+  rownames = FALSE,
+  filter = "top",
+  editable = list(target = "row",
+                  disable = list(columns = c(1, 2)))
+  )
+  proxy.TABLE_POUR_SELECTION = dataTableProxy('TABLE_POUR_SELECTION')
+  ###### DEFINTION DES VARS ET DES MODALITES ####
+  #### SELECT DF DATE ####
+  output$UI_DATE_SELECT<-renderUI({
+    #reactive({
+    names(list_csv())->names.pick
+    shiny::selectInput(inputId = "DATE_FOR_SELECT", label = "Date pour sélection:",
+                       choices = names.pick, multiple = FALSE)
+  })
+  #### SELECT VAR et MODLITE ####
+  reactive({list_csv()[[input$DATE_FOR_SELECT]]})->the.df
+  output$UI_VAR_SELECT<-renderUI({
+    req(the.df())
+    #mycolumns<-unique(unlist(Reduce(intersect,list(lapply(X = list_csv(), FUN = names))), 
+    #                         use.names = FALSE))
+    selectInput(inputId = "VAR_FOR_SELECT", label = "Variable pour sélection", 
+                choices = names(the.df()), multiple = FALSE)
+  })
+  output$UI_MOD_SELECT<-renderUI({
+    req(the.df())
+    the.df()[ , input$VAR_FOR_SELECT]->the.var
+    if(class(the.var)%in%c("numeric", "integer")){
+      shiny::sliderInput(inputId = "NumSelect", label = "Valeurs sélectionnées", 
+                         min = min(the.var, 
+                                   na.rm = TRUE), max = max(the.var, 
+                                                            na.rm = TRUE), 
+                         value = c(min(the.var, 
+                                       na.rm = TRUE), max(the.var, 
+                                                          na.rm = TRUE)))
+    } else {
+      if( class(the.var)%in%c("factor", "character") ){
+        if(length(unique(the.var))<100){
+          shiny::selectInput(inputId = "FactSelect", label="Valeurs sélectionnées", 
+                             choices =  unique(the.var), multiple = TRUE)
+        } else {"Trop de modalités"}
+      }
+    }
+  })
+  #### ADD ROW ###
+   observeEvent(input$addROW, {
+     
+     req(the.df())
+     the.df()[ , input$VAR_FOR_SELECT]->the.var
+     if(class(the.var)%in%c("factor", "character")){
+       input$FactSelect->moda_select
+       TYPE="char"
+     } else {
+       if(class(the.var)%in%c("numeric", "integer")){
+         input$NumSelect->moda_select
+         TYPE="num"
+         
+       }
+     }
+     print(input$NumSelect)
+     print(moda_select)
+
+     print(paste(input$DATE_FOR_SELECT, input$VAR_FOR_SELECT, moda_select ))
+     
+     data.frame("DATE"=input$DATE_FOR_SELECT,
+                "VARIABLE"=input$VAR_FOR_SELECT, 
+                "TYPE"=TYPE,
+                "CHOIX"=paste(moda_select, collapse = "/"))->vecto
+     
+     addRow(proxy = proxy.TABLE_POUR_SELECTION, data = vecto)
+   })
+  
+  reactive({
+    unique(TABLE_POUR_SELECTION$DATE)->dfs
+    list_csv()[names(list_csv() )%in%dfs]->list_for_subset
+    lapply(1:length(names(list_for_subset)), function(i){
+      list_for_subset[names(list_for_subset)==names(list_for_subset)[i]]->list.i
+      subset(TABLE_POUR_SELECTION, TABLE_POUR_SELECTION$DATE==names(list_for_subset)[i])->cond.i
+      lapply(1:nrow(cond.i), FUN = function(j){
+        strsplit(cond.i$CHOIX[j], split = "/")[[1]]->split.choices
+        paste("c(", paste(split.choices, collapse='","'))
+        as.numeric(split.choices)->num.choices
+        if(cond.i$TYPE=="char"){
+         paste(cond.i$VARIABLE[j]%in%split.choices
+        } else {
+          if(cond.i$TYPE=="num"){
+            as.numeric(strsplit(cond.i$CHOIX[j], split = "/"))
+            cond.i$VARIABLE[j]>=min(num.choices, na.rm=TRUE)&cond.i$VARIABLE[j]<=max(num.choices, na.rm=TRUE)
+            
+        }
+      })
+      
+    })
+  })
+   
+  UNIQUE_ID<-reactive({
+    lapply(X = test.test, function(data.i){
+      data.i[ , input$IDvar]
+    })->list_ID
+    unique(unlist(list_ID, use.names = FALSE))
+  })
+  
+  data_for_traj<-eventReactive(eventExpr = input$ValidParametres, {
+ 
+    Reduce(function(x, y) merge(x[ , ], 
+                                y[ , ], 
+                                by=input$IDvar, all=TRUE), list_for_traj)
+
+  })
+    
+  
   data.seq<-eventReactive(eventExpr = input$ValidParametres, {
   req(data())
     if(DataType=="fichier"){
-
   if (length(input$timecol)<2){
     showModal(modalDialog(
       title = "Important message",
@@ -135,17 +336,18 @@ server <- function(input, output, session) {
     # updateNumericInput(session=session, inputId = "PAStrate",value=1)
     s<-seqdef(data()[,input$timecol],cpal = NULL)
     
+  } 
+    } else {
+      if(DataType=="objet"){
+        s<-seqdef(data()[,input$timecol],cpal = NULL)
+        
+      }
+    }
     if (length(alphabet(s))<=12){
       #permet d'avoir les mêmes couleurs que pour les graphiques de flux
       a<-col_flux(data = data(),seq.data = s)
       attr(s, "cpal") <- unname(a[alphabet(s)])
-    }
-    
-    return(s)
-  } 
-    } else {
-      if(DataType=="objet"){
-      }
+      return(s)
     }
   })
 
